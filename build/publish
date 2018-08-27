@@ -1,0 +1,18 @@
+#!/bin/bash
+
+
+
+# increment the version build number; awk must write to temp file
+awk -F '.' '{printf("%d.%d.%d",$1,$2,$3+1)}' version.txt > newver.txt
+mv newver.txt version.txt
+VERSION=`cat version.txt`
+
+
+./build
+
+#git add -A ./docs
+#git commit -m "build v$VERSION" version.txt opac.jar docs/*
+git commit -m "build v$VERSION" version.txt opac.jar docs/*
+
+echo published v$VERSION
+

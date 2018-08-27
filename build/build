@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# must have jdk installed!
+
+CLASSDIR=./class
+
+function deldir {
+	if [ -d "$1" ]; then
+		rm -r "$1"
+	fi
+}
+
+VERSION=`cat version.txt`
+
+
+deldir $CLASSDIR
+mkdir $CLASSDIR
+# TODO: look into compiling for older versions of java
+#javac -target 1.5 -source 1.5 -d $CLASSDIR ../src/com/opatomic/*.java
+javac -d $CLASSDIR ../src/com/opatomic/*.java
+# TODO: add license file to jar?
+echo "version: $VERSION" >> $CLASSDIR/build.txt
+#TODO: add more info to build.txt - date/time, machine info?
+jar cvf opac.jar -C $CLASSDIR .
+deldir $CLASSDIR
+
+
+#deldir docs
+#mkdir docs
+#javadoc -quiet -header "opac-$VERSION" -d docs -sourcepath ../src com.opatomic
+
+
+## This will build the YCSB source; must set correct path to core jar file
+#mkdir $CLASSDIR
+#javac -d $CLASSDIR -cp ~/Downloads/ycsb-0.12.0/lib/core-0.12.0.jar:opac.jar ../test/com/yahoo/ycsb/db/*.java
+#jar cvf opatomic-ycsb.jar -C $CLASSDIR .
+#deldir $CLASSDIR
+
