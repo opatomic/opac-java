@@ -23,8 +23,8 @@ final class Utf8Utils {
 	 * @param len number of chars to count
 	 * @return number of bytes that are required to encode as UTF-8
 	 */
-	public static int getUtf8Len(final CharSequence s, final int offset, final int len) {
-		final int end = offset + len;
+	public static int getUtf8Len(CharSequence s, int offset, int len) {
+		int end = offset + len;
 		int numBytes = len;
 		for (int i = offset; i < end; ++i) {
 			int ch = s.charAt(i);
@@ -64,8 +64,8 @@ final class Utf8Utils {
 	 * @return position in buffer after all bytes have been written
 	 * @throws IOException
 	 */
-	public static int writeUtf8UsingBuffer(final CharSequence s, final int offset, final int len, byte[] buff, int bpos, OutputStream out) throws IOException {
-		final int end = offset + len;
+	public static int writeUtf8UsingBuffer(CharSequence s, int offset, int len, byte[] buff, int bpos, OutputStream out) throws IOException {
+		int end = offset + len;
 		int blen = buff.length;
 		for (int i = offset; i < end; ++i) {
 			if (bpos + 4 > blen) {
@@ -107,7 +107,7 @@ final class Utf8Utils {
 		return bpos;
 	}
 
-	private static void copyChunk(final CharSequence s, int offset, byte[] buff, int bpos, int len) {
+	private static void copyChunk(CharSequence s, int offset, byte[] buff, int bpos, int len) {
 		for (int end = bpos + len; bpos < end; ) {
 			buff[bpos++] = (byte) s.charAt(offset++);
 		}
@@ -126,7 +126,7 @@ final class Utf8Utils {
 	 * @return position in buffer after all bytes have been written
 	 * @throws IOException
 	 */
-	public static int writeAsciiUsingBuffer(final CharSequence s, int offset, int len, byte[] buff, int bpos, OutputStream out) throws IOException {
+	public static int writeAsciiUsingBuffer(CharSequence s, int offset, int len, byte[] buff, int bpos, OutputStream out) throws IOException {
 		while (true) {
 			int numToCopy = Math.min(len, buff.length - bpos);
 			copyChunk(s, offset, buff, bpos, numToCopy);
