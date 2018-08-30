@@ -222,6 +222,7 @@ public class OpaUtils {
 	private static final int T_BIN       = 0x06;
 	private static final int T_STRING    = 0x07;
 	private static final int T_ARRAY     = 0x08;
+	private static final int T_SORTMAX   = 0x09;
 
 	private static int getType(Object o) {
 		// TODO: map class to type rather than if/else + instanceof?
@@ -229,6 +230,8 @@ public class OpaUtils {
 			return T_NULL;
 		} else if (o == OpaDef.UndefinedObj) {
 			return T_UNDEFINED;
+		} else if (o == OpaDef.SortMaxObj) {
+			return T_SORTMAX;
 		} else if (o instanceof String) {
 			return T_STRING;
 		} else if (o instanceof Integer || o instanceof Long) {
@@ -268,11 +271,11 @@ public class OpaUtils {
 			return t1 - t2;
 		}
 		switch (t1) {
-			case T_UNDEFINED:
-			case T_NULL:
-			case T_FALSE:
-			case T_TRUE:
-				return 0;
+			//case T_UNDEFINED:
+			//case T_NULL:
+			//case T_FALSE:
+			//case T_TRUE:
+			//	return 0;
 			case T_NUMBER:
 				if ((o1 instanceof Integer || o1 instanceof Long) && (o2 instanceof Integer || o2 instanceof Long)) {
 					long l1 = ((Number)o1).longValue();

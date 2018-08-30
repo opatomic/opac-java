@@ -272,6 +272,8 @@ public final class OpaSerializer extends OutputStream {
 			writeLong(((Short)o).intValue());
 		} else if (o instanceof Byte) {
 			writeLong(((Byte)o).intValue());
+		} else if (o == OpaDef.SortMaxObj) {
+			write(OpaDef.C_SORTMAX);
 		} else {
 			throw new RuntimeException("Unknown object " + o.getClass().getName());
 		}

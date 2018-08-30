@@ -148,6 +148,7 @@ public class OpaPartialParser {
 						case OpaDef.C_EMPTYBIN:  hitNext(OpaDef.EmptyBinObj);   continue;
 						case OpaDef.C_EMPTYSTR:  hitNext(OpaDef.EmptyStrObj);   continue;
 						case OpaDef.C_EMPTYLIST: hitNext(OpaDef.EmptyListObj);  continue;
+						case OpaDef.C_SORTMAX:   hitNext(OpaDef.SortMaxObj);    continue;
 
 						case OpaDef.C_NEGVARINT: initVarint(OpaDef.C_NEGVARINT, S_VARINT2); continue;
 						case OpaDef.C_POSVARINT: initVarint(OpaDef.C_POSVARINT, S_VARINT2); continue;
