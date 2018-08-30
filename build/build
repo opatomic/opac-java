@@ -10,7 +10,14 @@ function deldir {
 	fi
 }
 
+if [[ $# -eq 1 && $1 = "--publish" ]]; then
+	VERSUFF=
+else
+	VERSUFF=-dev
+fi
+
 VERSION=`cat version.txt`
+VERSION=$VERSION$VERSUFF
 
 
 deldir $CLASSDIR

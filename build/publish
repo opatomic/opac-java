@@ -8,7 +8,7 @@ mv newver.txt version.txt
 VERSION=`cat version.txt`
 
 
-./build
+./build --publish
 
 #git add -A ./docs
 #git commit -m "build v$VERSION" version.txt opac.jar docs/*
