@@ -271,11 +271,12 @@ public class OpaUtils {
 			return t1 - t2;
 		}
 		switch (t1) {
-			//case T_UNDEFINED:
-			//case T_NULL:
-			//case T_FALSE:
-			//case T_TRUE:
-			//	return 0;
+			case T_UNDEFINED:
+			case T_NULL:
+			case T_FALSE:
+			case T_TRUE:
+			case T_SORTMAX:
+				return 0;
 			case T_NUMBER:
 				if ((o1 instanceof Integer || o1 instanceof Long) && (o2 instanceof Integer || o2 instanceof Long)) {
 					long l1 = ((Number)o1).longValue();
