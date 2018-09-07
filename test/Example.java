@@ -39,7 +39,7 @@ public class Example {
 			c.call("PING", null, null);
 			c.call("PING", null, echoResult);
 			c.call("ECHO", asIt("Hello"), echoResult);
-			c.call("ECHO", asIt(Arrays.asList(OpaDef.UndefinedObj, null, false, true, -1, 0, 1, OpaDef.EmptyBinObj, "string", OpaDef.EmptyListObj)), echoResult);
+			c.call("ECHO", asIt(Arrays.asList(OpaDef.UndefinedObj, null, false, true, -1, 0, 1, OpaDef.EmptyBinObj, "string", OpaDef.EmptyArrayObj)), echoResult);
 			
 			c.call("INCR", asIt("TESTkey", -4), echoResult);
 			c.call("INCR", asIt("TESTkey", new BigInteger("12345678901234567890")), echoResult);

@@ -140,15 +140,15 @@ public class OpaPartialParser {
 						return NOMORE;
 					}
 					switch (buff[idx++]) {
-						case OpaDef.C_UNDEFINED: hitNext(OpaDef.UndefinedObj);  continue;
-						case OpaDef.C_NULL:      hitNext(null);                 continue;
-						case OpaDef.C_FALSE:     hitNext(OpaDef.FalseObj);      continue;
-						case OpaDef.C_TRUE:      hitNext(OpaDef.TrueObj);       continue;
-						case OpaDef.C_ZERO:      hitNext(OpaDef.ZeroIntObj);    continue;
-						case OpaDef.C_EMPTYBIN:  hitNext(OpaDef.EmptyBinObj);   continue;
-						case OpaDef.C_EMPTYSTR:  hitNext(OpaDef.EmptyStrObj);   continue;
-						case OpaDef.C_EMPTYLIST: hitNext(OpaDef.EmptyListObj);  continue;
-						case OpaDef.C_SORTMAX:   hitNext(OpaDef.SortMaxObj);    continue;
+						case OpaDef.C_UNDEFINED:  hitNext(OpaDef.UndefinedObj);  continue;
+						case OpaDef.C_NULL:       hitNext(null);                 continue;
+						case OpaDef.C_FALSE:      hitNext(OpaDef.FalseObj);      continue;
+						case OpaDef.C_TRUE:       hitNext(OpaDef.TrueObj);       continue;
+						case OpaDef.C_ZERO:       hitNext(OpaDef.ZeroIntObj);    continue;
+						case OpaDef.C_EMPTYBIN:   hitNext(OpaDef.EmptyBinObj);   continue;
+						case OpaDef.C_EMPTYSTR:   hitNext(OpaDef.EmptyStrObj);   continue;
+						case OpaDef.C_EMPTYARRAY: hitNext(OpaDef.EmptyArrayObj); continue;
+						case OpaDef.C_SORTMAX:    hitNext(OpaDef.SortMaxObj);    continue;
 
 						case OpaDef.C_NEGVARINT: initVarint(OpaDef.C_NEGVARINT, S_VARINT2); continue;
 						case OpaDef.C_POSVARINT: initVarint(OpaDef.C_POSVARINT, S_VARINT2); continue;

@@ -220,7 +220,7 @@ public final class OpaSerializer extends OutputStream {
 			} while (i.hasNext());
 			write(OpaDef.C_ARRAYEND);
 		} else {
-			write(OpaDef.C_EMPTYLIST);
+			write(OpaDef.C_EMPTYARRAY);
 		}
 	}
 
@@ -245,7 +245,7 @@ public final class OpaSerializer extends OutputStream {
 		} else if (o instanceof Object[]) {
 			Object[] a = (Object[]) o;
 			if (a.length == 0) {
-				write(OpaDef.C_EMPTYLIST);
+				write(OpaDef.C_EMPTYARRAY);
 			} else {
 				write(OpaDef.C_ARRAYSTART);
 				for (int i = 0; i < a.length; ++i) {

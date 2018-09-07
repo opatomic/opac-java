@@ -268,10 +268,10 @@ public class Test {
 	
 	// check whether byte array is minimal representation of object
 	private static void checkMin(Object o, byte[] b) {
-		checkMinByte(o, OpaDef.ZeroIntObj,   b, OpaDef.C_ZERO);
-		checkMinByte(o, OpaDef.EmptyBinObj,  b, OpaDef.C_EMPTYBIN);
-		checkMinByte(o, OpaDef.EmptyStrObj,  b, OpaDef.C_EMPTYSTR);
-		checkMinByte(o, OpaDef.EmptyListObj, b, OpaDef.C_EMPTYLIST);
+		checkMinByte(o, OpaDef.ZeroIntObj,    b, OpaDef.C_ZERO);
+		checkMinByte(o, OpaDef.EmptyBinObj,   b, OpaDef.C_EMPTYBIN);
+		checkMinByte(o, OpaDef.EmptyStrObj,   b, OpaDef.C_EMPTYSTR);
+		checkMinByte(o, OpaDef.EmptyArrayObj, b, OpaDef.C_EMPTYARRAY);
 	}
 	
 	private static void testVal2(Object o) {
@@ -330,7 +330,7 @@ public class Test {
 	
 	private static Object[] TESTVALS = {
 		OpaDef.UndefinedObj, OpaDef.FalseObj, OpaDef.TrueObj, OpaDef.ZeroIntObj, 
-		OpaDef.EmptyBinObj, OpaDef.EmptyStrObj, OpaDef.EmptyListObj, 
+		OpaDef.EmptyBinObj, OpaDef.EmptyStrObj, OpaDef.EmptyArrayObj, 
 		null, false, true, 0, 
 		"", new byte[0], new Object[0], new ArrayList<Object>(),
 		Byte.MIN_VALUE, Byte.MAX_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, 

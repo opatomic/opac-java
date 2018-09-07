@@ -15,7 +15,7 @@ public class OpaDef {
 	public static final byte C_ZERO         = 'O';
 	public static final byte C_EMPTYBIN     = 'A';
 	public static final byte C_EMPTYSTR     = 'R';
-	public static final byte C_EMPTYLIST    = 'M';
+	public static final byte C_EMPTYARRAY   = 'M';
 	public static final byte C_SORTMAX      = 'Z';
 
 	public static final byte C_POSVARINT    = 'D';
@@ -63,7 +63,7 @@ public class OpaDef {
 	public static final Integer ZeroIntObj = Integer.valueOf(0);
 	public static final byte[] EmptyBinObj = new byte[0];
 	public static final String EmptyStrObj = "";
-	public static final List<Object> EmptyListObj = Collections.emptyList();
+	public static final List<Object> EmptyArrayObj = Collections.emptyList();
 
 	public static final void log(String msg) {
 		System.out.println(msg);
