@@ -125,7 +125,7 @@ final class OpaSyncClient {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public void startMulti() {
 		if (mMultiLen >= 0) {
 			throw new IllegalStateException("multi started already");
@@ -231,7 +231,7 @@ public class OpatomicClient extends DB {
 	@Override
 	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		// note: this could be performed server-side with a script. would be 1 round trip rather than 2.
-		
+
 		List<?> keys = (List<?>) mClient.callVA("KEYS", "START", startkey, "LIMIT", recordcount);
 
 		if (fields == null) {

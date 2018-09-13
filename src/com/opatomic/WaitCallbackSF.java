@@ -4,7 +4,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * A callback that helps make a request synchronous by waiting for response.
- * 
+ *
  * Example usage:
  * <pre>
  * {@code
@@ -45,7 +45,7 @@ public class WaitCallbackSF<R,E> implements CallbackSF<R,E> {
 		mIsDone = true;
 		notifyAll();
 	}
-	
+
 	/**
 	 * Wait forever until a response is received.
 	 * @throws InterruptedException
@@ -56,7 +56,7 @@ public class WaitCallbackSF<R,E> implements CallbackSF<R,E> {
 			wait(0);
 		}
 	}
-	
+
 	/**
 	 * Wait until a response is received or a timeout is exceeded
 	 * @param millis max milliseconds to wait for response

@@ -12,7 +12,7 @@ public interface CallbackSF<R,E> {
 	 * @param result The successful response received
 	 */
 	public void onSuccess(R result);
-	
+
 	/**
 	 * Invoked when error response is received
 	 * @param error The error response received

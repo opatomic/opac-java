@@ -130,7 +130,7 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 				Thread.yield();
 			}
 			sendRequest(r);
-			
+
 			int len = mRequestQLen.decrementAndGet();
 			if (len < 0) {
 				mSerializer.flush();
@@ -196,7 +196,7 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 
 	/**
 	 * Create a new client and connect to the specified address.
-	 * @param addr address of Opatomic server 
+	 * @param addr address of Opatomic server
 	 * @return new client
 	 * @throws IOException
 	 */

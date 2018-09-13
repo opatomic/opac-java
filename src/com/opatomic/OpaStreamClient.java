@@ -28,8 +28,8 @@ final class Request {
 	}
 
 	// TODO: implement toString()?
-	
-	// TODO: return an instance of this object from call() functions with a cancel() function: if request hasn't 
+
+	// TODO: return an instance of this object from call() functions with a cancel() function: if request hasn't
 	//  been sent then set flag and when it is time to serialize, call failure callback? see java.util.concurrent.Future
 }
 
@@ -61,16 +61,16 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 	 */
 	public OpaStreamClient(final InputStream in, final OutputStream out) {
 		mSerializer = new OpaSerializer(out, 1024 * 8);
-		
+
 		// TODO: consider using java.util.concurrent.Executor for send? (recv will always be blocking or doing work)
-		
+
 		OpaUtils.startDaemonThread(new Runnable() {
 			public void run() {
 				try {
 					serializeRequests(mSerializeQueue);
-					
+
 					// the only way for serializeRequests() to return is when parser is done, has queued LASTREQUEST
-					// and the serializer has received LASTREQUEST. therefore, queue another LASTREQUEST for 
+					// and the serializer has received LASTREQUEST. therefore, queue another LASTREQUEST for
 					// the upcoming call to cleanupDeadRequests()
 					// mClosed should have been set by recv thread
 					mSerializeQueue.add(LASTREQUEST);
@@ -79,12 +79,12 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 
 					// at this point, the recv thread may be running or may be closed.
 					// close InputStream to indicate that serializer is done and recv thread must stop
-					// (if it hasn't stopped already). when recv thread stops, it queues LASTREQUEST 
+					// (if it hasn't stopped already). when recv thread stops, it queues LASTREQUEST
 					// which eventually informs cleanupDeadRequests() that it can stop running.
 					// note: this will cause any incoming responses to not be parsed and onFailure() to be
 					// invoked for each waiting request's callback.
-					// TODO: if recv thread is still running and there's pending callbacks in 
-					//  mMainCallbacks or mAsyncCallbacks, add a timeout to allow more responses 
+					// TODO: if recv thread is still running and there's pending callbacks in
+					//  mMainCallbacks or mAsyncCallbacks, add a timeout to allow more responses
 					//  to be parsed and handled?
 					// TODO: test this
 					mClosed = true;
@@ -92,13 +92,13 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 						in.close();
 					} catch (Exception e2) {}
 				}
-				
+
 				cleanupDeadRequests(mSerializeQueue);
 				respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
 				OpaDef.log("closing send thread");
 			}
 		}, "OpaStreamClient-send");
-		
+
 		OpaUtils.startDaemonThread(new Runnable() {
 			public void run() {
 				try {
@@ -171,7 +171,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 		}
 		s.write(OpaDef.C_ARRAYEND);
 	}
-	
+
 	private void sendRequest(Request r) throws IOException {
 		if (r.cb != null) {
 			if (r.id == 0) {
@@ -181,7 +181,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 				mAsyncCallbacks.put(r.id, r.cb);
 			}
 		}
-		
+
 		writeRequest(mSerializer, r.command, r.args, r.id, r.cb == null);
 	}
 
@@ -252,7 +252,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
 		if (cmd == null) {
-			// pre-check command so that addRequest() doesn't throw exception after id+cb has 
+			// pre-check command so that addRequest() doesn't throw exception after id+cb has
 			// been added to mAsyncCallbacks
 			throw new IllegalArgumentException();
 		}

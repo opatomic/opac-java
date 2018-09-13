@@ -7,17 +7,17 @@ import java.util.Queue;
 class OpaClientRecvState {
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
 	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
-	
+
 	private final OpaPartialParser.Buff mBuff = new OpaPartialParser.Buff();
 	private final OpaPartialParser mParser = new OpaPartialParser();
-	
+
 	//private long mNumRecv;
 
 	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Long,CallbackSF<Object,OpaRpcError>> asynccbs) {
 		mMainCallbacks = maincbs;
 		mAsyncCallbacks = asynccbs;
 	}
-	
+
 	private int getErrorCode(Object codeObj) {
 		long code = ((Long) codeObj).longValue();
 		if (code > Integer.MAX_VALUE || code < Integer.MIN_VALUE || code == 0) {
@@ -39,7 +39,7 @@ class OpaClientRecvState {
 		} else {
 			cb = mMainCallbacks.remove();
 		}
-		
+
 		OpaRpcError err2 = null;
 		if (err != null) {
 			if (err instanceof List) {
@@ -70,7 +70,7 @@ class OpaClientRecvState {
 			//e.printStackTrace();
 		}
 	}
-	
+
 	private void onResponse(Object o) {
 		//if (!(o instanceof List)) {
 		//	throw new RuntimeException("Response is not a list");
@@ -86,7 +86,7 @@ class OpaClientRecvState {
 			throw new RuntimeException("Response list is wrong size: " + l.size());
 		}
 	}
-	
+
 	public void onRecv(byte[] buff, int idx, int len) {
 		mBuff.data = buff;
 		mBuff.idx = idx;

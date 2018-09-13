@@ -117,7 +117,7 @@ public class OpaNioClientST implements OpaClient<Object,OpaRpcError> {
 
 	/**
 	 * Create a new client and connect to the specified address.
-	 * @param addr address of Opatomic server 
+	 * @param addr address of Opatomic server
 	 * @return new client
 	 * @throws IOException
 	 */

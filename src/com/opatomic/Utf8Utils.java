@@ -15,8 +15,8 @@ final class Utf8Utils {
 	private static final int SURROGATE_OFFSET = Character.MIN_SUPPLEMENTARY_CODE_POINT - (0xD800 << 10) - 0xDC00;
 
 	/**
-	 * Determine how many bytes are required to encode chars as UTF-8 when calling 
-	 * {@link #writeUtf8UsingBuffer(CharSequence,int,int,byte[],int,OutputStream) writeUtf8UsingBuffer()}. If a 
+	 * Determine how many bytes are required to encode chars as UTF-8 when calling
+	 * {@link #writeUtf8UsingBuffer(CharSequence,int,int,byte[],int,OutputStream) writeUtf8UsingBuffer()}. If a
 	 * surrogate pair is invalid, it is replaced with 3 byte substitution character.
 	 * @param s the chars to count
 	 * @param offset pos in {@code s}
@@ -115,7 +115,7 @@ final class Utf8Utils {
 
 	/**
 	 * Iteratively write ascii chars to a byte[] buffer, flushing to an OutputStream when buffer is full.
-	 * If {@link #getUtf8Len(CharSequence,int,int) getUtf8Len()} returns a UTF-8 length that is 1 byte per char (same byte 
+	 * If {@link #getUtf8Len(CharSequence,int,int) getUtf8Len()} returns a UTF-8 length that is 1 byte per char (same byte
 	 * count as char count) then chars are ascii and can be written using this function.
 	 * @param s       chars to write
 	 * @param offset  offset in {@code s}

@@ -54,11 +54,11 @@ public class OpatomicAsyncClient extends DB {
 			} else {
 				throw new RuntimeException("unknown ctype " + ctype);
 			}
-			
+
 		} catch (IOException e) {
 			throw new DBException(e);
 		}
-		
+
 		if (pass != null) {
 			Object r = callAndWait("AUTH", asIt(pass));
 			if (r != Boolean.TRUE) {
@@ -100,7 +100,7 @@ public class OpatomicAsyncClient extends DB {
 		}
 		//mClient.call("QUIT", null, wcb);
 		waitForResult(wcb);
-		
+
 		//try {
 		//	mSocket.close();
 		//} catch (IOException e) {

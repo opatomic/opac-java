@@ -11,13 +11,13 @@ final class NioToOioOutputStream extends OutputStream  {
 	private final SocketChannel mChannel;
 	private final OpaNioSelector.NioSelectionHandler mHandler;
 	private boolean mWritable = false;
-	
+
 	NioToOioOutputStream(OpaNioSelector s, SocketChannel ch, OpaNioSelector.NioSelectionHandler h) {
 		mSelector = s;
 		mChannel = ch;
 		mHandler = h;
 	}
-	
+
 	private void waitUntilWritable() {
 		while (!mWritable) {
 			try {
@@ -25,7 +25,7 @@ final class NioToOioOutputStream extends OutputStream  {
 			} catch (InterruptedException e) {}
 		}
 	}
-	
+
 	public synchronized void setWritable() {
 		mWritable = true;
 		notifyAll();
@@ -44,7 +44,7 @@ final class NioToOioOutputStream extends OutputStream  {
 			}
 		}
 	}
-	
+
 	@Override
 	public void write(int v) throws IOException {
 		// writing 1 byte at a time is inefficient!

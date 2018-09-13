@@ -79,7 +79,7 @@ public final class OpaSerializer extends OutputStream {
 				buff[i] = buff[buff.length - i - 1];
 				buff[buff.length - i - 1] = tval;
 			}
-			
+
 			// may have to ignore a byte since byte array includes a sign bit
 			write(buff, 0, numBytes);
 		}
@@ -287,7 +287,7 @@ public final class OpaSerializer extends OutputStream {
 			mBuffPos = 0;
 		}
 	}
-	
+
 	private void ensureSpace(int len) throws IOException {
 		if (mBuffPos + len > mBuff.length) {
 			flushBuff();
