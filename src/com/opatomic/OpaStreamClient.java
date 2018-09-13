@@ -114,7 +114,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 		}, "OpaStreamClient-recv");
 	}
 
-	static void cleanupDeadRequests(BlockingQueue<Request> q) {
+	private static void cleanupDeadRequests(BlockingQueue<Request> q) {
 		while (true) {
 			try {
 				Request r = q.take();
@@ -130,7 +130,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 		}
 	}
 
-	static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Long,CallbackSF<Object,OpaRpcError>> asyncCBs) {
+	private static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Long,CallbackSF<Object,OpaRpcError>> asyncCBs) {
 		// notify callbacks that conn is closed
 		while (true) {
 			CallbackSF<Object,OpaRpcError> cb = mainCBs.poll();

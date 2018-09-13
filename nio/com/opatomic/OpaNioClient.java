@@ -108,10 +108,11 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 
 	private void sendRequest(Request r) throws IOException {
 		if (r.cb != null) {
-			if (r.id != 0) {
-				mAsyncCallbacks.put(r.id, r.cb);
-			} else {
+			if (r.id == 0) {
 				mMainCallbacks.add(r.cb);
+			} else if (r.id > 0) {
+				// note: if id is < 0 then cb was already added to mAsyncCallbacks
+				mAsyncCallbacks.put(r.id, r.cb);
 			}
 		}
 
