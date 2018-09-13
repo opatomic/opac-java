@@ -116,7 +116,6 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 		}
 
 		// TODO: design a serializer that can pause at any point if a write would block
-		//OpaStreamClient.writeRequest(r, mSerializer);
 		OpaStreamClient.writeRequest(mSerializer, r.command, r.args, r.id, r.cb == null);
 	}
 
@@ -157,17 +156,11 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 
 	@Override
 	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
-		//if (mQuitCB1 != null) {
-		//	throw new IllegalStateException();
-		//}
 		addRequest(cmd, args, 0, cb);
 	}
 
 	@Override
 	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
-		//if (mQuitCB1 != null) {
-		//	throw new IllegalStateException();
-		//}
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
@@ -176,9 +169,6 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 
 	@Override
 	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
-		//if (mQuitCB1 != null) {
-		//	throw new IllegalStateException();
-		//}
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
