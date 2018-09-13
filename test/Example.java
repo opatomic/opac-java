@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import com.opatomic.CallbackSF;
 import com.opatomic.OpaDef;
+import com.opatomic.OpaRpcError;
 import com.opatomic.OpaStreamClient;
 import com.opatomic.OpaUtils;
 import com.opatomic.WaitCallbackSF;
@@ -19,19 +20,19 @@ public class Example {
 	
 	public static void main(String[] args) {
 
-		CallbackSF<Object, Object> echoResult = new CallbackSF<Object, Object>() {
+		CallbackSF<Object,OpaRpcError> echoResult = new CallbackSF<Object,OpaRpcError>() {
 			@Override
 			public void onSuccess(Object result) {
 				System.out.println(OpaUtils.stringify(result));
 			}
 			@Override
-			public void onFailure(Object error) {
-				System.out.println("ERROR: " + OpaUtils.stringify(error));
+			public void onFailure(OpaRpcError error) {
+				System.out.println("ERROR: " + error.toString());
 			}
 		};
 		
 		try {
-			WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+			WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 			Socket s = new Socket("127.0.0.1", 4567);
 			s.setTcpNoDelay(true);
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
@@ -56,15 +57,15 @@ public class Example {
 			
 			final Object chid = c.callAP("SUBSCRIBE", asIt("channelName"), echoResult);
 			c.call("PUBLISH", asIt("channelName", "chan message"), null);
-			c.callA("UNSUBSCRIBE", asIt("channelName"), new CallbackSF<Object, Object>() {
+			c.callA("UNSUBSCRIBE", asIt("channelName"), new CallbackSF<Object,OpaRpcError>() {
 				@Override
 				public void onSuccess(Object result) {
 					System.out.println("unsubscribed");
 					c.unregister(chid);
 				}
 				@Override
-				public void onFailure(Object error) {
-					System.out.println("Error: could not unsubscribe; " + OpaUtils.stringify(error));
+				public void onFailure(OpaRpcError error) {
+					System.out.println("Error: could not unsubscribe; " + error.toString());
 				}
 			});
 

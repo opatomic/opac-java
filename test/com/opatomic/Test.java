@@ -82,23 +82,23 @@ class Benchmark {
 	}
 	
 	private static final class ClientRunner {
-		private final OpaClient<Object,Object> mClient;
+		private final OpaClient<Object,OpaRpcError> mClient;
 		private State mState;
 		private int mCurrBatch;
 		
-		ClientRunner(OpaClient<Object,Object> c) {
+		ClientRunner(OpaClient<Object,OpaRpcError> c) {
 			mClient = c;
 		}
 		
-		private final CallbackSF<Object,Object> mBatchCB = new CallbackSF<Object,Object>() {
+		private final CallbackSF<Object,OpaRpcError> mBatchCB = new CallbackSF<Object,OpaRpcError>() {
 			@Override
 			public void onSuccess(Object result) {
 				mState.completed(mCurrBatch);
 				claimAndRun();
 			}
 			@Override
-			public void onFailure(Object error) {
-				System.out.println("ERROR: " + OpaUtils.stringify(error));
+			public void onFailure(OpaRpcError error) {
+				System.out.println("ERROR: " + error.toString());
 			}
 		};
 		
@@ -162,38 +162,38 @@ class Benchmark {
 
 
 public class Test {
-	public static final class EchoCB implements CallbackSF<Object, Object> {
+	public static final class EchoCB implements CallbackSF<Object, OpaRpcError> {
 		@Override
 		public void onSuccess(Object result) {
 			System.out.println(OpaUtils.stringify(result));
 		}
 		@Override
-		public void onFailure(Object error) {
-			System.out.println("ERROR: " + OpaUtils.stringify(error));
+		public void onFailure(OpaRpcError error) {
+			System.out.println("ERROR: " + error.toString());
 		}
 	}
 	
-	public static final class EchoErrCB implements CallbackSF<Object, Object> {
+	public static final class EchoErrCB implements CallbackSF<Object, OpaRpcError> {
 		@Override
 		public void onSuccess(Object result) {
 			//System.out.println(stringify(result));
 		}
 		@Override
-		public void onFailure(Object error) {
-			System.out.println("ERROR: " + OpaUtils.stringify(error));
+		public void onFailure(OpaRpcError error) {
+			System.out.println("ERROR: " + error.toString());
 		}
 	}
 	
-	private static final CallbackSF<Object, Object> ECHOCB = new EchoCB();
-	static final CallbackSF<Object, Object> ECHOERRCB = new EchoErrCB();
+	private static final CallbackSF<Object, OpaRpcError> ECHOCB = new EchoCB();
+	static final CallbackSF<Object, OpaRpcError> ECHOERRCB = new EchoErrCB();
 	
 	
 
 	
 	
 
-	private static Object callSync(OpaClient<Object,Object> c, String cmd, Iterator<Object> args) {
-		WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+	private static Object callSync(OpaClient<Object,OpaRpcError> c, String cmd, Iterator<Object> args) {
+		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		c.call(cmd, args, wcb);
 		try {
 			wcb.waitIfNotDone();
@@ -201,7 +201,7 @@ public class Test {
 			throw new RuntimeException(e);
 		}
 		if (wcb.error != null) {
-			throw new RuntimeException(OpaUtils.stringify(wcb.error));
+			throw new RuntimeException(wcb.error.toString());
 		}
 		return wcb.result;
 	}
@@ -268,7 +268,7 @@ public class Test {
 	
 	// check whether byte array is minimal representation of object
 	private static void checkMin(Object o, byte[] b) {
-		checkMinByte(o, OpaDef.ZeroIntObj,    b, OpaDef.C_ZERO);
+		checkMinByte(o, OpaDef.ZeroObj,       b, OpaDef.C_ZERO);
 		checkMinByte(o, OpaDef.EmptyBinObj,   b, OpaDef.C_EMPTYBIN);
 		checkMinByte(o, OpaDef.EmptyStrObj,   b, OpaDef.C_EMPTYSTR);
 		checkMinByte(o, OpaDef.EmptyArrayObj, b, OpaDef.C_EMPTYARRAY);
@@ -329,7 +329,7 @@ public class Test {
 	}
 	
 	private static Object[] TESTVALS = {
-		OpaDef.UndefinedObj, OpaDef.FalseObj, OpaDef.TrueObj, OpaDef.ZeroIntObj, 
+		OpaDef.UndefinedObj, Boolean.FALSE, Boolean.TRUE, OpaDef.ZeroObj, 
 		OpaDef.EmptyBinObj, OpaDef.EmptyStrObj, OpaDef.EmptyArrayObj, 
 		null, false, true, 0, 
 		"", new byte[0], new Object[0], new ArrayList<Object>(),
@@ -358,8 +358,8 @@ public class Test {
 		
 	}
 	
-	private static long bench2(OpaClient<Object,Object> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
-		WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+	private static long bench2(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
+		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		long time = System.currentTimeMillis();
 		for (--its; its > 0; --its) {
 			if (async) {
@@ -373,17 +373,17 @@ public class Test {
 		return System.currentTimeMillis() - time;
 	}
 
-	private static void bench(OpaClient<Object,Object> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
+	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
 		for (int i = 0; i < 2; ++i) {
 			System.out.println(command + " time: " + bench2(c, its, command, args, async));
 		}
 	}
 	
-	private static void bench(OpaClient<Object,Object> c, int its, String command, Iterable<Object> args) throws InterruptedException {
+	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args) throws InterruptedException {
 		bench(c, its, command, args, false);
 	}
 
-	private static void bench(OpaClient<Object,Object> c, int its, String command) throws InterruptedException {
+	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command) throws InterruptedException {
 		bench(c, its, command, null);
 	}
 	
@@ -420,8 +420,8 @@ public class Test {
 		}
 	}
 	
-	private static void check(OpaClient<Object,Object> c, final Object expect, final String command, final Object... args) {
-		c.call(command, asIt(args), new CallbackSF<Object,Object>() {
+	private static void check(OpaClient<Object,OpaRpcError> c, final Object expect, final String command, final Object... args) {
+		c.call(command, asIt(args), new CallbackSF<Object,OpaRpcError>() {
 			@Override
 			public void onSuccess(Object result) {
 				if (OpaUtils.compare(expect, result) != 0) {
@@ -429,13 +429,13 @@ public class Test {
 				}
 			}
 			@Override
-			public void onFailure(Object error) {
-				System.err.println("failure for command: " + command + "; " + OpaUtils.stringify(error));
+			public void onFailure(OpaRpcError error) {
+				System.err.println("failure for command: " + command + "; " + error.toString());
 			}
 		});
 	}
 	
-	private static void createBigBlob(OpaClient<Object,Object> c, int chunkLen, int numChunks) {
+	private static void createBigBlob(OpaClient<Object,OpaRpcError> c, int chunkLen, int numChunks) {
 		Object blen = callSync(c, "BLEN", asIt("bigblob"));
 		
 		if (OpaUtils.compare(blen, chunkLen * numChunks) != 0) {
@@ -454,7 +454,7 @@ public class Test {
 		}
 	}
 	
-	private static void populateMap(OpaClient<Object,Object> c, String key, int its, int chunkLen) {
+	private static void populateMap(OpaClient<Object,OpaRpcError> c, String key, int its, int chunkLen) {
 		long time = System.currentTimeMillis();
 
 		for (int i = 0; i < its; ++i) {
@@ -473,7 +473,7 @@ public class Test {
 		System.out.println("populateMap " + (its*chunkLen) + ": " + (System.currentTimeMillis() - time));
 	}
 	
-	private static void loadServerSend(OpaClient<Object,Object> c, int its) {
+	private static void loadServerSend(OpaClient<Object,OpaRpcError> c, int its) {
 		createBigBlob(c, 1024, 10000);
 		
 		long time = System.currentTimeMillis();
@@ -494,10 +494,10 @@ public class Test {
 	 * @param args  command arguments
 	 * @param its   number of times to run command
 	 */
-	private static void testSyncCalls(OpaClient<Object,Object> c, String op, Iterable<Object> args, int its) {
+	private static void testSyncCalls(OpaClient<Object,OpaRpcError> c, String op, Iterable<Object> args, int its) {
 		long time = System.currentTimeMillis();
 		
-		CallbackSF<Object,Object> cb = new CallbackSF<Object,Object>() {
+		CallbackSF<Object,OpaRpcError> cb = new CallbackSF<Object,OpaRpcError>() {
 			private int mIts = its;
 			@Override
 			public void onSuccess(Object result) {
@@ -511,7 +511,7 @@ public class Test {
 				}
 			}
 			@Override
-			public void onFailure(Object error) {
+			public void onFailure(OpaRpcError error) {
 				System.out.println("error: " + error);
 			}
 		};
@@ -529,26 +529,52 @@ public class Test {
 		System.out.println("sync call " + op + " time: " + (System.currentTimeMillis() - time));
 	}
 	
+	private static void testCloseFromSerializerException(String host, int port) {
+		try {
+			WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
+			Socket s = new Socket("127.0.0.1", 4567);
+			s.setTcpNoDelay(true);
+			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
+			c.call("ECHO", asIt(new OpaSerializer.OpaSerializable() {
+				@Override
+				public void writeOpaSO(OpaSerializer out) throws IOException {
+					throw new RuntimeException("test case!");
+				}
+			}), wcb);
+			wcb.waitIfNotDone();
+			if (wcb.error == null) {
+				throw new RuntimeException("expected error in cb");
+			}
+			s.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("exception thrown when none should occur");
+		}
+	}
+	
 	// TODO: latency tester
 	// TODO: tester with many concurrent clients loading the db
 	// TODO: tests to validate the db's ops are implemented correctly
 	
 	public static void main(String[] args) {
 		try {
+			String host = "127.0.0.1";
+			int port = 4567;
 			
 			testSerialize();
 			
-			Socket s = new Socket("127.0.0.1", 4567);
+			testCloseFromSerializerException(host, port);
+			
+			Socket s = new Socket(host, port);
 			s.setTcpNoDelay(true);
 			
-			//OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
-			//OpaStreamClient2 c = new OpaStreamClient2(s.getInputStream(), s.getOutputStream());
+			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
 			
-			OpaClient<Object,Object> c = OpaNioClient.connect(new InetSocketAddress("127.0.0.1", 4567));
+			//OpaClient<Object,Object> c = OpaNioClient.connect(new InetSocketAddress("127.0.0.1", 4567));
 			//OpaClient<Object,Object> c = OpaNIOClientST.connect(new InetSocketAddress("127.0.0.1", 4567));
 
 			
-			WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+			WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 			
 			c.call("PING", null, ECHOCB);
 			//c.call("ECHO", asIt(asIt("hello", 0, 1, -2)), ECHOCB);
@@ -560,6 +586,7 @@ public class Test {
 
 			c.call("ECHO", asIt(asIt("hello", "arg2", "goodbye")), ECHOCB);
 			c.call("ECHO", asIt(OpaDef.UndefinedObj), ECHOCB);
+			c.call("ECHO", asIt(), ECHOCB);
 			//c.call("ECHO", asIt(OpaDef.NullObj), ECHOCB);
 			c.call("ECHO", asIt(asIt(OpaDef.UndefinedObj, null, false, true, OpaDef.EmptyBinObj,"",new Object[0])), ECHOCB);
 			c.call("ECHO", asIt(asIt(new BigDecimal("-123e-4"))), ECHOCB);
@@ -580,7 +607,7 @@ public class Test {
 			c.callA("PUBSUB", asIt("CHANNELS", "WITHCOUNT"), ECHOCB);
 			c.call("PUBLISH", asIt("ch1", "msg1"), null);
 			c.call("PUBLISH", asIt("ch1", "msg2"), null);
-			c.callA("UNSUBSCRIBE", asIt("ch1"), new UnsubscribeCB<Object,Object>(c, ch1ID, ECHOCB));
+			c.callA("UNSUBSCRIBE", asIt("ch1"), new UnsubscribeCB<Object,OpaRpcError>(c, ch1ID, ECHOCB));
 
 			c.call("PING", null, ECHOCB);
 			/*

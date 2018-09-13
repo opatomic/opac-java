@@ -27,7 +27,7 @@ final class DaemonThreadFactory implements ThreadFactory {
 	}
 }
 
-public class OpaNioClient implements OpaClient<Object,Object> {
+public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 	private static final int RECVREADITS = 1;
 	private static final int RECVBUFFLEN = 1024 * 8;
 	private static final int SENDBUFFLEN = 1024 * 8;
@@ -61,10 +61,18 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 			SocketChannel sc = (SocketChannel) selch;
 			if ((readyOps & SelectionKey.OP_READ) != 0) {
 				for (int i = 0; i < RECVREADITS; ++i) {
-					int numRead = sc.read(RECVBUF);
+					int numRead;
+					try {
+						numRead = sc.read(RECVBUF);
+					} catch (Exception e) {
+						numRead = -1;
+					}
 					if (numRead <= 0) {
 						if (numRead < 0) {
 							selch.close();
+							// call setWritable() in case writer thread is waiting
+							mOut.setWritable();
+							return;
 						}
 						break;
 					}
@@ -87,8 +95,8 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 	private final AtomicInteger mRequestQLen = new AtomicInteger(-2);
 	private final OpaSerializer mSerializer;
 	private final Queue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
-	private final Queue<CallbackSF<Object,Object>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,Object>>();
-	private final Map<Long,CallbackSF<Object,Object>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,Object>>();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
 	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
 	private final NioToOioOutputStream mOut;
 
@@ -135,7 +143,7 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 		}
 	}
 
-	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,Object> cb) {
+	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
 		int len = mRequestQLen.getAndIncrement();
 		mSerializeQueue.add(new Request(command, args, id, cb));
 		if (len == -2) {
@@ -148,7 +156,7 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 	// TODO: call methods should check whether client is closed (before adding to serialize queue); if so then throw exception!
 
 	@Override
-	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
+	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
 		//if (mQuitCB1 != null) {
 		//	throw new IllegalStateException();
 		//}
@@ -156,7 +164,7 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 	}
 
 	@Override
-	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
+	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
 		//if (mQuitCB1 != null) {
 		//	throw new IllegalStateException();
 		//}
@@ -167,7 +175,7 @@ public class OpaNioClient implements OpaClient<Object,Object> {
 	}
 
 	@Override
-	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
+	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
 		//if (mQuitCB1 != null) {
 		//	throw new IllegalStateException();
 		//}

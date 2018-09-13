@@ -4,9 +4,11 @@ import java.util.Collections;
 import java.util.List;
 
 public class OpaDef {
-	public static final boolean DEBUG = true;
+	static final boolean DEBUG = true;
 
-	public static final boolean BIGINT_BE = true;
+	static final boolean BIGINT_BE = true;
+
+	public static final int ERR_CLOSED = -16394;
 
 	public static final byte C_UNDEFINED    = 'U';
 	public static final byte C_NULL         = 'N';
@@ -58,14 +60,12 @@ public class OpaDef {
 	//	}
 	//};
 
-	public static final Boolean FalseObj   = Boolean.FALSE;
-	public static final Boolean TrueObj    = Boolean.TRUE;
-	public static final Integer ZeroIntObj = Integer.valueOf(0);
+	public static final Long ZeroObj       = Long.valueOf(0);
 	public static final byte[] EmptyBinObj = new byte[0];
 	public static final String EmptyStrObj = "";
 	public static final List<Object> EmptyArrayObj = Collections.emptyList();
 
-	public static final void log(String msg) {
+	static void log(String msg) {
 		System.out.println(msg);
 	}
 }

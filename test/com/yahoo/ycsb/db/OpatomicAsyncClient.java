@@ -20,6 +20,7 @@ import com.yahoo.ycsb.Status;
 
 import com.opatomic.CallbackSF;
 import com.opatomic.OpaClient;
+import com.opatomic.OpaRpcError;
 import com.opatomic.OpaStreamClient;
 import com.opatomic.WaitCallbackSF;
 
@@ -27,9 +28,9 @@ import com.opatomic.WaitCallbackSF;
 // note: this client is slow because YCSB is designed to run synchronously
 public class OpatomicAsyncClient extends DB {
 	private Socket mSocket;
-	private OpaClient<Object,Object> mClient;
+	private OpaClient<Object,OpaRpcError> mClient;
 	private boolean mInsertStrict;
-	private Object mError;
+	private OpaRpcError mError;
 
 	@Override
 	public void init() throws DBException {
@@ -70,7 +71,7 @@ public class OpatomicAsyncClient extends DB {
 		return Arrays.asList(objs).iterator();
 	}
 
-	private static Object waitForResult(WaitCallbackSF<Object,Object> wcb) {
+	private static Object waitForResult(WaitCallbackSF<Object,OpaRpcError> wcb) {
 		try {
 			wcb.waitIfNotDone();
 		} catch (InterruptedException e) {
@@ -83,7 +84,7 @@ public class OpatomicAsyncClient extends DB {
 	}
 
 	private Object callAndWait(String cmd, Iterator<Object> args) {
-		WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		mClient.call(cmd, args, wcb);
 		return waitForResult(wcb);
 	}
@@ -91,7 +92,7 @@ public class OpatomicAsyncClient extends DB {
 	@Override
 	public void cleanup() throws DBException {
 		// TODO: just close socket rather than calling QUIT and waiting for response?
-		WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		if (mClient instanceof OpaStreamClient) {
 			((OpaStreamClient)mClient).quit("QUIT", null, wcb);
 		} else {
@@ -122,9 +123,9 @@ public class OpatomicAsyncClient extends DB {
 			//}
 		} else {
 			final Iterator<String> it1 = fields.iterator();
-			CallbackSF<Object,Object> cb = new CallbackSF<Object,Object>() {
+			CallbackSF<Object,OpaRpcError> cb = new CallbackSF<Object,OpaRpcError>() {
 				@Override
-				public void onFailure(Object e) {
+				public void onFailure(OpaRpcError e) {
 					mError = e;
 				}
 				@Override
@@ -149,7 +150,7 @@ public class OpatomicAsyncClient extends DB {
 		return result.isEmpty() ? Status.ERROR : Status.OK;
 	}
 
-	private final class ToMap implements CallbackSF<Object,Object> {
+	private final class ToMap implements CallbackSF<Object,OpaRpcError> {
 		private final Iterator<String> mFields;
 		private final Map<String,ByteIterator> mMap;
 
@@ -158,7 +159,7 @@ public class OpatomicAsyncClient extends DB {
 			mMap = m;
 		}
 		@Override
-		public void onFailure(Object err) {
+		public void onFailure(OpaRpcError err) {
 			mError = err;
 		}
 		@Override
@@ -169,9 +170,9 @@ public class OpatomicAsyncClient extends DB {
 
 	private void readFields(final String key, Set<String> fields, final Map<String, ByteIterator> result) {
 		if (fields == null || fields.size() == 0) {
-			mClient.call("MRANGE", asIt(key), new CallbackSF<Object,Object>() {
+			mClient.call("MRANGE", asIt(key), new CallbackSF<Object,OpaRpcError>() {
 				@Override
-				public void onFailure(Object err) {
+				public void onFailure(OpaRpcError err) {
 					mError = err;
 				}
 				@Override
@@ -196,7 +197,7 @@ public class OpatomicAsyncClient extends DB {
 	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		mError = null;
 
-		WaitCallbackSF<Object,Object> wcb = new WaitCallbackSF<Object,Object>();
+		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		mClient.call("KEYS", asIt("START", startkey, "LIMIT", recordcount), wcb);
 		List<?> keys = (List<?>) waitForResult(wcb);
 		for (int i = 0; i < keys.size(); ++i) {

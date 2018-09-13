@@ -15,9 +15,9 @@ final class Request {
 	public final String command;
 	public final Iterator<Object> args;
 	public final long id;
-	public final CallbackSF<Object,Object> cb;
+	public final CallbackSF<Object,OpaRpcError> cb;
 
-	Request(String command, Iterator<Object> args, long id, CallbackSF<Object,Object> cb) {
+	Request(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
 		if (command == null) {
 			throw new IllegalArgumentException();
 		}
@@ -37,38 +37,22 @@ final class Request {
  * Opatomic client that uses 2 threads: 1 for parser and 1 for serializer. Methods do not block.
  * Cannot modify args until callback is invoked (because requests are serialized in separate thread).
  */
-public class OpaStreamClient implements OpaClient<Object,Object> {
+public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 
-	private static final Request CLOSESENDTHREAD = new Request("", null, 0, null);
-
+	private static final Request LASTREQUEST = new Request("", null, 0, null);
+	private static final OpaRpcError CLOSED_ERROR = new OpaRpcError(OpaDef.ERR_CLOSED);
 
 	private final AtomicLong mCurrId = new AtomicLong();
 
 	private final OpaSerializer mSerializer;
 	private final BlockingQueue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
 
-	private final Queue<CallbackSF<Object,Object>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,Object>>();
-	private final Map<Long,CallbackSF<Object,Object>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,Object>>();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
 
 	private boolean mQuit = false;
-	private CallbackSF<Object,Object> mQuitCB1;
-
-	private final CallbackSF<Object,Object> mQuitCB2 = new CallbackSF<Object,Object>() {
-		@Override
-		public void onSuccess(Object result) {
-			mQuit = true;
-			if (mQuitCB1 != null) {
-				mQuitCB1.onSuccess(result);
-			}
-		}
-		@Override
-		public void onFailure(Object error) {
-			if (mQuitCB1 != null) {
-				mQuitCB1.onFailure(error);
-			}
-		}
-	};
-	
+	private boolean mQuitting = false;
+	private boolean mClosed = false;
 
 	/**
 	 * Create a new client that will serialize requests to an OutputStream and parse responses from an InputStream.
@@ -84,10 +68,34 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 			public void run() {
 				try {
 					serializeRequests(mSerializeQueue);
+					
+					// the only way for serializeRequests() to return is when parser is done, has queued LASTREQUEST
+					// and the serializer has received LASTREQUEST. therefore, queue another LASTREQUEST for 
+					// the upcoming call to cleanupDeadRequests()
+					// mClosed should have been set by recv thread
+					mSerializeQueue.add(LASTREQUEST);
 				} catch (Exception e) {
 					e.printStackTrace();
+
+					// at this point, the recv thread may be running or may be closed.
+					// close InputStream to indicate that serializer is done and recv thread must stop
+					// (if it hasn't stopped already). when recv thread stops, it queues LASTREQUEST 
+					// which eventually informs cleanupDeadRequests() that it can stop running.
+					// note: this will cause any incoming responses to not be parsed and onFailure() to be
+					// invoked for each waiting request's callback.
+					// TODO: if recv thread is still running and there's pending callbacks in 
+					//  mMainCallbacks or mAsyncCallbacks, add a timeout to allow more responses 
+					//  to be parsed and handled?
+					// TODO: test this
+					mClosed = true;
+					try {
+						in.close();
+					} catch (Exception e2) {}
 				}
-				//OpaDef.log("closing send thread");
+				
+				cleanupDeadRequests(mSerializeQueue);
+				respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
+				OpaDef.log("closing send thread");
 			}
 		}, "OpaStreamClient-send");
 		
@@ -98,20 +106,57 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				//OpaDef.log("closing recv thread");
+				mClosed = true;
+				// signal send thread that recv thread is done
+				mSerializeQueue.add(LASTREQUEST);
+				OpaDef.log("closing recv thread");
 			}
 		}, "OpaStreamClient-recv");
+	}
+
+	static void cleanupDeadRequests(BlockingQueue<Request> q) {
+		while (true) {
+			try {
+				Request r = q.take();
+				if (r == LASTREQUEST) {
+					break;
+				}
+				if (r != null && r.cb != null) {
+					r.cb.onFailure(CLOSED_ERROR);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Long,CallbackSF<Object,OpaRpcError>> asyncCBs) {
+		// notify callbacks that conn is closed
+		while (true) {
+			CallbackSF<Object,OpaRpcError> cb = mainCBs.poll();
+			if (cb == null) {
+				break;
+			}
+			cb.onFailure(CLOSED_ERROR);
+		}
+
+		if (asyncCBs.size() > 0) {
+			Iterator<Map.Entry<Long,CallbackSF<Object,OpaRpcError>>> it = asyncCBs.entrySet().iterator();
+			while (it.hasNext()) {
+				CallbackSF<Object,OpaRpcError> cb = it.next().getValue();
+				if (cb != null) {
+					cb.onFailure(CLOSED_ERROR);
+				}
+			}
+			asyncCBs.clear();
+		}
 	}
 
 	static void writeRequest(OpaSerializer s, String cmd, Iterator<Object> args, long id, boolean noResponse) throws IOException {
 		s.write(OpaDef.C_ARRAYSTART);
 		s.writeString(cmd);
 		if (args != null) {
-			s.write(OpaDef.C_ARRAYSTART);
-			while (args.hasNext()) {
-				s.writeObject(args.next());
-			}
-			s.write(OpaDef.C_ARRAYEND);
+			s.writeArray(args);
 		}
 		if (id != 0) {
 			if (args == null) {
@@ -129,10 +174,11 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 	
 	private void sendRequest(Request r) throws IOException {
 		if (r.cb != null) {
-			if (r.id != 0) {
-				mAsyncCallbacks.put(r.id, r.cb);
-			} else {
+			if (r.id == 0) {
 				mMainCallbacks.add(r.cb);
+			} else if (r.id > 0) {
+				// note: if id is < 0 then cb was already added to mAsyncCallbacks
+				mAsyncCallbacks.put(r.id, r.cb);
 			}
 		}
 		
@@ -141,8 +187,7 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 
 	private void serializeRequests(BlockingQueue<Request> q) throws IOException, InterruptedException {
 		Request r;
-		//long numSent = 0;
-		do {
+		while (true) {
 			if ((r = q.poll()) == null) {
 				// yield and try again to prevent unnecessary flush
 				Thread.yield();
@@ -152,108 +197,68 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 					r = q.take();
 				}
 			}
-			if (r == CLOSESENDTHREAD) {
+			if (r == LASTREQUEST) {
+				// this is a message from the recv thread that it is done parsing, send thread must stop too
 				break;
 			}
 			sendRequest(r);
-			//++numSent;
-		} while (r.cb != mQuitCB2);
-
+		}
 		mSerializer.flush();
-		//OpaDef.log("stopped sending and flushed");
 	}
 
 	private void parseResponses(InputStream in, int buffLen) throws IOException {
-		
 		OpaClientRecvState s = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
 		byte[] buff = new byte[buffLen];
 		while (!mQuit) {
-			int numRead;
-			try {
-				numRead = in.read(buff);
-			} catch (IOException e) {
-				//if (!(e instanceof SocketException && e.getMessage().equals("Connection reset"))) {
-					e.printStackTrace();
-				//}
-				break;
-			}
+			int numRead = in.read(buff);
 			if (numRead == -1) {
 				break;
 			}
 			s.onRecv(buff, 0, numRead);
 		}
-
-		// signal send thread to close
-		mSerializeQueue.add(CLOSESENDTHREAD);
-
-		// notify callbacks that conn is closed
-		while (true) {
-			CallbackSF<Object,Object> cb = mMainCallbacks.poll();
-			if (cb == null) {
-				break;
-			}
-			cb.onFailure("closed");
-		}
-
-		if (mAsyncCallbacks.size() > 0) {
-			//OpaDef.log("Callback exists after done parsing");
-			Iterator<Map.Entry<Long,CallbackSF<Object,Object>>> it = mAsyncCallbacks.entrySet().iterator();
-			while (it.hasNext()) {
-				Map.Entry<Long,CallbackSF<Object,Object>> e = it.next();
-				if (e.getKey().longValue() > 0) {
-					CallbackSF<Object,Object> cb = e.getValue();
-					if (cb != null) {
-						cb.onFailure("closed");
-					}
-				}
-			}
-		}
-
-		/*
-		try {
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		*/
 	}
 
-	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,Object> cb) {
+	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
 		mSerializeQueue.add(new Request(command, args, id, cb));
 	}
 
-	// TODO: call methods should check whether client is closed (before adding to serialize queue); if so then throw exception!
+	private void checkState() {
+		if (mClosed) {
+			throw new IllegalStateException("closed");
+		}
+		if (mQuitting) {
+			throw new IllegalStateException("quitting");
+		}
+	}
 
 	@Override
-	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
-		if (mQuitCB1 != null) {
-			throw new IllegalStateException();
-		}
+	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
+		checkState();
 		addRequest(cmd, args, 0, cb);
 	}
 
 	@Override
-	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
-		if (mQuitCB1 != null) {
-			throw new IllegalStateException();
-		}
+	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
+		checkState();
 		addRequest(cmd, args, mCurrId.incrementAndGet(), cb);
 	}
 
 	@Override
-	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
-		if (mQuitCB1 != null) {
-			throw new IllegalStateException();
-		}
+	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
+		if (cmd == null) {
+			// pre-check command so that addRequest() doesn't throw exception after id+cb has 
+			// been added to mAsyncCallbacks
+			throw new IllegalArgumentException();
+		}
+		checkState();
 		Long id = Long.valueOf(0 - mCurrId.incrementAndGet());
 		mAsyncCallbacks.put(id, cb);
-		// TODO: if this fails (throws exception) then must remove id from mAsyncCallbacks
 		addRequest(cmd, args, id.longValue(), null);
 		return id;
 	}
@@ -271,11 +276,23 @@ public class OpaStreamClient implements OpaClient<Object,Object> {
 	 * @param args Command's parameters. Do not modify
 	 * @param cb   Callback to invoke when response is received
 	 */
-	public void quit(String cmd, Iterator<Object> args, CallbackSF<Object,Object> cb) {
-		if (mQuitCB1 != null) {
-			throw new IllegalStateException();
-		}
-		mQuitCB1 = cb;
-		addRequest(cmd, args, 0, mQuitCB2);
+	public void quit(String cmd, Iterator<Object> args, final CallbackSF<Object,OpaRpcError> cb) {
+		checkState();
+		mQuitting = true;
+		addRequest(cmd, args, 0, new CallbackSF<Object,OpaRpcError>() {
+			@Override
+			public void onSuccess(Object result) {
+				mQuit = true;
+				if (cb != null) {
+					cb.onSuccess(result);
+				}
+			}
+			@Override
+			public void onFailure(OpaRpcError error) {
+				if (cb != null) {
+					cb.onFailure(error);
+				}
+			}
+		});
 	}
 }

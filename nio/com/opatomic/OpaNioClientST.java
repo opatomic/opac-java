@@ -12,7 +12,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class OpaNioClientST implements OpaClient<Object,Object> {
+public class OpaNioClientST implements OpaClient<Object,OpaRpcError> {
 	private static final int RECVREADITS = 1;
 	private static final int RECVBUFFLEN = 1024 * 8;
 	private static final int SENDBUFFLEN = 1024 * 8;
@@ -25,8 +25,8 @@ public class OpaNioClientST implements OpaClient<Object,Object> {
 	}
 
 	private long mCurrId = 0;
-	private final Queue<CallbackSF<Object,Object>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,Object>>();
-	private final Map<Long,CallbackSF<Object,Object>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,Object>>();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
 	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
 	private final OpaSerializer mSerializer;
 	private final NioToOioOutputStream mOut;
@@ -65,7 +65,7 @@ public class OpaNioClientST implements OpaClient<Object,Object> {
 		SELECTOR.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_CONNECT);
 	}
 
-	private void sendRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,Object> cb) {
+	private void sendRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
 		if (cb != null) {
 			if (id != 0) {
 				mAsyncCallbacks.put(id, cb);
@@ -86,12 +86,12 @@ public class OpaNioClientST implements OpaClient<Object,Object> {
 	}
 
 	@Override
-	public synchronized void call(String cmd, Iterator<Object> args, CallbackSF<Object, Object> cb) {
+	public synchronized void call(String cmd, Iterator<Object> args, CallbackSF<Object, OpaRpcError> cb) {
 		sendRequest(cmd, args, 0, cb);
 	}
 
 	@Override
-	public synchronized void callA(String cmd, Iterator<Object> args, CallbackSF<Object, Object> cb) {
+	public synchronized void callA(String cmd, Iterator<Object> args, CallbackSF<Object, OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
@@ -99,7 +99,7 @@ public class OpaNioClientST implements OpaClient<Object,Object> {
 	}
 
 	@Override
-	public synchronized Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object, Object> cb) {
+	public synchronized Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object, OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
