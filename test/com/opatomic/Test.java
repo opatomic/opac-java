@@ -125,7 +125,7 @@ class Benchmark {
 	void connect(String host, int port, int numClients) throws IOException {
 		mClients = new ClientRunner[numClients];
 		for (int i = 0; i < numClients; ++i) {
-			OpaNioClientST c = OpaNioClientST.connect(new InetSocketAddress(host, port));
+			OpaNioClient c = OpaNioClient.connect(new InetSocketAddress(host, port));
 
 			//Socket s = new Socket("127.0.0.1", 4567);
 			//s.setTcpNoDelay(true);
