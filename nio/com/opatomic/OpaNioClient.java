@@ -1,6 +1,7 @@
 package com.opatomic;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
@@ -27,22 +28,61 @@ final class DaemonThreadFactory implements ThreadFactory {
 	}
 }
 
-public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
-	private static final int RECVREADITS = 1;
-	private static final int RECVBUFFLEN = 1024 * 8;
-	private static final int SENDBUFFLEN = 1024 * 8;
+final class NioToOioOutputStream extends OutputStream  {
+	private final OpaNioSelector mSelector;
+	private final SocketChannel mChannel;
+	private final OpaNioSelector.NioSelectionHandler mHandler;
+	private boolean mWritable = false;
 
-	private static final OpaNioSelector SELECTOR = new OpaNioSelector();
-	private static final ByteBuffer RECVBUF = ByteBuffer.allocate(RECVBUFFLEN);
-
-	// note: this executor service should be configurable! core thread, max threads, thread idle timeout
-	private static final ExecutorService EXSVC = new ThreadPoolExecutor(4, 4, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new DaemonThreadFactory());
-
-	static {
-		OpaUtils.startDaemonThread(SELECTOR, "OpatomicNioSelector");
+	NioToOioOutputStream(OpaNioSelector s, SocketChannel ch, OpaNioSelector.NioSelectionHandler h) {
+		mSelector = s;
+		mChannel = ch;
+		mHandler = h;
 	}
 
+	private void waitUntilWritable() {
+		while (!mWritable) {
+			try {
+				wait(0);
+			} catch (InterruptedException e) {}
+		}
+	}
 
+	public synchronized void setWritable() {
+		mWritable = true;
+		notifyAll();
+	}
+
+	@Override
+	public synchronized void write(byte[] buff, int off, int len) throws IOException {
+		while (len > 0) {
+			waitUntilWritable();
+			int numWritten = mChannel.write(ByteBuffer.wrap(buff, off, len));
+			off += numWritten;
+			len -= numWritten;
+			if (numWritten == 0) {
+				mWritable = false;
+				mSelector.register(mChannel, mHandler, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+			}
+		}
+	}
+
+	@Override
+	public void write(int v) throws IOException {
+		// writing 1 byte at a time is inefficient!
+		throw new UnsupportedOperationException();
+	}
+}
+
+class RequestSerializer {
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
+	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
+
+	private final Queue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
+	private final OpaSerializer mSerializer;
+	private final AtomicInteger mRequestQLen = new AtomicInteger(-2);
+
+	private final ExecutorService mExSvc;
 	private final Runnable mRunSerialize = new Runnable() {
 		@Override
 		public void run() {
@@ -55,55 +95,11 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 		}
 	};
 
-	private final OpaNioSelector.NioSelectionHandler mHandler = new OpaNioSelector.NioSelectionHandler() {
-		@Override
-		public void handle(SelectableChannel selch, SelectionKey key, int readyOps) throws IOException {
-			SocketChannel sc = (SocketChannel) selch;
-			if ((readyOps & SelectionKey.OP_READ) != 0) {
-				for (int i = 0; i < RECVREADITS; ++i) {
-					int numRead;
-					try {
-						numRead = sc.read(RECVBUF);
-					} catch (Exception e) {
-						numRead = -1;
-					}
-					if (numRead <= 0) {
-						if (numRead < 0) {
-							selch.close();
-							// call setWritable() in case writer thread is waiting
-							mOut.setWritable();
-							return;
-						}
-						break;
-					}
-					mRecvState.onRecv(RECVBUF.array(), RECVBUF.arrayOffset(), numRead);
-					RECVBUF.clear();
-				}
-			}
-			if ((readyOps & SelectionKey.OP_WRITE) != 0) {
-				SELECTOR.register(selch, this, SelectionKey.OP_READ);
-				mOut.setWritable();
-			}
-			if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
-				sc.finishConnect();
-				mOut.setWritable();
-			}
-		}
-	};
-
-	private final AtomicLong mCurrId = new AtomicLong();
-	private final AtomicInteger mRequestQLen = new AtomicInteger(-2);
-	private final OpaSerializer mSerializer;
-	private final Queue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
-	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
-	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
-	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
-	private final NioToOioOutputStream mOut;
-
-	OpaNioClient(SocketChannel ch) {
-		mOut = new NioToOioOutputStream(SELECTOR, ch, mHandler);
-		mSerializer = new OpaSerializer(mOut, SENDBUFFLEN);
-		SELECTOR.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_CONNECT);
+	RequestSerializer(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Long,CallbackSF<Object,OpaRpcError>> asynccbs, ExecutorService exsvc, OutputStream out, int buffLen) {
+		mMainCallbacks = maincbs;
+		mAsyncCallbacks = asynccbs;
+		mExSvc = exsvc;
+		mSerializer = new OpaSerializer(out, buffLen);
 	}
 
 	private void sendRequest(Request r) throws IOException {
@@ -143,13 +139,83 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 		}
 	}
 
-	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
+	void sendRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
 		int len = mRequestQLen.getAndIncrement();
 		mSerializeQueue.add(new Request(command, args, id, cb));
 		if (len == -2) {
 			mRequestQLen.getAndIncrement();
-			EXSVC.execute(mRunSerialize);
+			mExSvc.execute(mRunSerialize);
 		}
+	}
+}
+
+public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
+	private static final int RECVREADITS = 1;
+	private static final int RECVBUFFLEN = 1024 * 8;
+	private static final int SENDBUFFLEN = 1024 * 8;
+
+	private static final OpaNioSelector SELECTOR = new OpaNioSelector();
+	private static final ByteBuffer RECVBUF = ByteBuffer.allocate(RECVBUFFLEN);
+
+	// note: this executor service should be configurable! core thread, max threads, thread idle timeout
+	static final ExecutorService EXSVC = new ThreadPoolExecutor(4, 4, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new DaemonThreadFactory());
+
+	static {
+		OpaUtils.startDaemonThread(SELECTOR, "OpatomicNioSelector");
+	}
+
+
+	private final OpaNioSelector.NioSelectionHandler mHandler = new OpaNioSelector.NioSelectionHandler() {
+		@Override
+		public void handle(SelectableChannel selch, SelectionKey key, int readyOps) throws IOException {
+			SocketChannel sc = (SocketChannel) selch;
+			if ((readyOps & SelectionKey.OP_READ) != 0) {
+				for (int i = 0; i < RECVREADITS; ++i) {
+					int numRead;
+					try {
+						numRead = sc.read(RECVBUF);
+					} catch (Exception e) {
+						numRead = -1;
+					}
+					if (numRead <= 0) {
+						if (numRead < 0) {
+							selch.close();
+							// call setWritable() in case writer thread is waiting
+							mOut.setWritable();
+							return;
+						}
+						break;
+					}
+					mRecvState.onRecv(RECVBUF.array(), RECVBUF.arrayOffset(), numRead);
+					RECVBUF.clear();
+				}
+			}
+			if ((readyOps & SelectionKey.OP_WRITE) != 0) {
+				SELECTOR.register(selch, this, SelectionKey.OP_READ);
+				mOut.setWritable();
+			}
+			if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
+				sc.finishConnect();
+				mOut.setWritable();
+			}
+		}
+	};
+
+	private final AtomicLong mCurrId = new AtomicLong();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
+	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
+	private final NioToOioOutputStream mOut;
+	private final RequestSerializer mReqSer;
+
+	OpaNioClient(SocketChannel ch) {
+		mOut = new NioToOioOutputStream(SELECTOR, ch, mHandler);
+		mReqSer = new RequestSerializer(mMainCallbacks, mAsyncCallbacks, EXSVC, mOut, SENDBUFFLEN);
+		SELECTOR.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_CONNECT);
+	}
+
+	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
+		mReqSer.sendRequest(command, args, id, cb);
 	}
 
 	// TODO: must handle unexpected connection closing. threads might be waiting on response - need to invoke failure callback
