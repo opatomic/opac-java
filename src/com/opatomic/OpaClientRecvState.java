@@ -29,12 +29,16 @@ class OpaClientRecvState {
 	private void handleResponse(Object result, Object err, Object id) {
 		CallbackSF<Object,OpaRpcError> cb;
 		if (id != null) {
-			//if (!(id instanceof Long)) {
-			//	throw new RuntimeException("id is not a Long");
-			//}
+			if (!(id instanceof Long)) {
+				//throw new RuntimeException("response id is not a Long");
+				System.err.println("response id is not a Long: " + OpaUtils.stringify(id));
+				return;
+			}
 			cb = ((Long)id).longValue() < 0 ? mAsyncCallbacks.get(id) : mAsyncCallbacks.remove(id);
 			if (cb == null) {
-				throw new RuntimeException("Unknown callback id " + id.toString());
+				//throw new RuntimeException("Unknown callback id " + OpaUtils.stringify(id));
+				System.err.println("Unknown callback id " + OpaUtils.stringify(id));
+				return;
 			}
 		} else {
 			cb = mMainCallbacks.remove();
