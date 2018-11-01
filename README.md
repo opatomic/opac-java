@@ -4,4 +4,5 @@ Download latest release: [opac.jar](https://github.com/opatomic/opac-java/raw/ma
 
 Example usage: [Example.java](https://github.com/opatomic/opac-java/blob/master/test/Example.java)
 
-TODO: add link to java docs API
+[API docs](https://opatomic.github.io/opac-java/)
+
