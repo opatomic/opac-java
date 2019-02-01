@@ -42,7 +42,7 @@ deldir $CLASSDIR
 
 deldir ../docs
 mkdir ../docs
-javadoc -quiet -header "opac-$VERSION" -d ../docs -sourcepath ../src com.opatomic
+javadoc -quiet -notimestamp -header "opac-$VERSION" -d ../docs -sourcepath ../src com.opatomic
 
 
 ## This will build the YCSB source; must set correct path to core jar file
