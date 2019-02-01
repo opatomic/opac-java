@@ -1,5 +1,13 @@
 #!/bin/bash
 
+function handleErr {
+	SNAME=$(basename $BASH_SOURCE)
+	echo "$SNAME: Error on line $1"
+	exit 1
+}
+
+trap 'handleErr $LINENO' ERR
+
 # must have jdk installed!
 
 CLASSDIR=./class

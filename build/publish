@@ -1,6 +1,18 @@
 #!/bin/bash
 
+function handleErr {
+	SNAME=$(basename $BASH_SOURCE)
+	echo "$SNAME: Error on line $1"
+	exit 1
+}
 
+trap 'handleErr $LINENO' ERR
+
+NUMSTAGED=`git diff --cached --numstat | wc -l`
+if [ $NUMSTAGED -ne 0 ]; then
+	echo "There are $NUMSTAGED staged edits. Please clear git staging area."
+	exit 1
+fi
 
 # increment the version build number; awk must write to temp file
 awk -F '.' '{printf("%d.%d.%d",$1,$2,$3+1)}' version.txt > newver.txt
@@ -10,9 +22,11 @@ VERSION=`cat version.txt`
 
 ./build --publish
 
-#git add -A ./docs
-#git commit -m "build v$VERSION" version.txt opac.jar docs/*
-git commit -m "build v$VERSION" version.txt opac.jar
+git add -A ../docs/
+git add version.txt
+git add opac.jar
 
-echo published v$VERSION
+git commit -m "build v$VERSION"
+
+echo "published v$VERSION"
 
