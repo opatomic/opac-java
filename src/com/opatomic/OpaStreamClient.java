@@ -270,7 +270,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 
 	/**
 	 * Queue a command that will:
-	 * 	 1) close the send thread after the command has been written; no more commands will be sent
+	 *   1) close the send thread after the command has been written; no more commands will be sent
 	 *   2) close the recv thread after the command's response has been parsed and the callback has been invoked
 	 * @param cmd  Command to run (ie, QUIT)
 	 * @param args Command's parameters. Do not modify
