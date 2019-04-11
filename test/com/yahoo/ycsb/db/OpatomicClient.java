@@ -31,7 +31,7 @@ final class OpaSyncClient {
 	private final OpaSerializer mSerializer;
 	private final OpaPartialParser mParser = new OpaPartialParser();
 	private final OpaPartialParser.Buff mPBuff = new OpaPartialParser.Buff();
-	private int mMultiLen = -1;
+	private int mPipelineLen = -1;
 
 	public OpaSyncClient(InputStream in, OutputStream out, int buffLen) {
 		mIn = in;
@@ -99,11 +99,11 @@ final class OpaSyncClient {
 	public Object call(String cmd, Iterator<Object> args) {
 		try {
 			sendRequest(cmd, args);
-			if (mMultiLen < 0) {
+			if (mPipelineLen < 0) {
 				mSerializer.flush();
 				return getNextOrThrow();
 			} else {
-				++mMultiLen;
+				++mPipelineLen;
 				return null;
 			}
 		} catch (IOException e) {
@@ -114,11 +114,11 @@ final class OpaSyncClient {
 	public Object callVA(String cmd, Object... args) {
 		try {
 			sendRequest(cmd, args);
-			if (mMultiLen < 0) {
+			if (mPipelineLen < 0) {
 				mSerializer.flush();
 				return getNextOrThrow();
 			} else {
-				++mMultiLen;
+				++mPipelineLen;
 				return null;
 			}
 		} catch (IOException e) {
@@ -126,24 +126,24 @@ final class OpaSyncClient {
 		}
 	}
 
-	public void startMulti() {
-		if (mMultiLen >= 0) {
-			throw new IllegalStateException("multi started already");
+	public void startPipeline() {
+		if (mPipelineLen >= 0) {
+			throw new IllegalStateException("pipeline started already");
 		}
-		mMultiLen = 0;
+		mPipelineLen = 0;
 	}
 
 	// note: an exception is thrown if an error is received for any of the responses (all will be lost)
-	public Object[] sendMulti() {
-		if (mMultiLen < 0) {
-			throw new IllegalStateException("multi not started");
+	public Object[] sendPipeline() {
+		if (mPipelineLen < 0) {
+			throw new IllegalStateException("pipeline not started");
 		}
 		try {
 			// note: could cause problems if a lot of requests and responses are piling up on server...
 			//  server may not be able to parse more requests until some responses are received by client?
 			mSerializer.flush();
-			Object results[] = new Object[mMultiLen];
-			mMultiLen = -1;
+			Object results[] = new Object[mPipelineLen];
+			mPipelineLen = -1;
 			for (int i = 0; i < results.length; ++i) {
 				results[i] = getNextOrThrow();
 			}
@@ -203,14 +203,14 @@ public class OpatomicClient extends DB {
 	}
 
 	private Object[] getFields(List<?> keys, Set<String> fields) {
-		mClient.startMulti();
+		mClient.startPipeline();
 		for (int i = 0; i < keys.size(); ++i) {
 			Iterator<String> it = fields.iterator();
 			while (it.hasNext()) {
 				mClient.callVA("MGET", keys.get(i), it.next());
 			}
 		}
-		return mClient.sendMulti();
+		return mClient.sendPipeline();
 	}
 
 	@Override
@@ -235,11 +235,11 @@ public class OpatomicClient extends DB {
 		List<?> keys = (List<?>) mClient.callVA("KEYS", "START", startkey, "LIMIT", recordcount);
 
 		if (fields == null) {
-			mClient.startMulti();
+			mClient.startPipeline();
 			for (int i = 0; i < keys.size(); ++i) {
 				mClient.callVA("MRANGE", keys.get(i));
 			}
-			Object results[] = mClient.sendMulti();
+			Object results[] = mClient.sendPipeline();
 			for (int i = 0; i < results.length; ++i) {
 				HashMap<String,ByteIterator> record = new HashMap<String,ByteIterator>();
 				setRangeFields(((Iterable<?>)results[i]).iterator(), record);
