@@ -95,7 +95,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 
 				cleanupDeadRequests(mSerializeQueue);
 				respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
-				OpaDef.log("closing send thread");
+				//OpaDef.log("closing send thread");
 			}
 		}, "OpaStreamClient-send");
 
@@ -109,7 +109,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 				mClosed = true;
 				// signal send thread that recv thread is done
 				mSerializeQueue.add(LASTREQUEST);
-				OpaDef.log("closing recv thread");
+				//OpaDef.log("closing recv thread");
 			}
 		}, "OpaStreamClient-recv");
 	}
