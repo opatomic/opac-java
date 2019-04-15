@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -47,7 +48,7 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 	private final OpaSerializer mSerializer;
 	private final BlockingQueue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
 
-	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
 
 	private boolean mQuit = false;
