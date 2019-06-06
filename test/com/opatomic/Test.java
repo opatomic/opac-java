@@ -556,8 +556,27 @@ public class Test {
 	// TODO: tester with many concurrent clients loading the db
 	// TODO: tests to validate the db's ops are implemented correctly
 
+	private static void bench(OpaClient<Object,OpaRpcError> c) throws InterruptedException {
+		bench(c, 1000000, "PING");
+		bench(c, 1000000, "PING");
+		bench(c, 1000000, "PING", null, true);
+		bench(c, 1000000, "PING", null, true);
+		//bench(c, 1000000, "ECHO", asList(0));
+		//bench(c, 1000000, "ECHO", asList("abcdefghijklmnopqrstuvwxyz0123456789"));
+		//bench(c, 1000000, "ECHO", asList(Long.MAX_VALUE));
+		//bench(c, 1000000, "ECHO", asList(0 - Long.MAX_VALUE));
+		//bench(c, 1000000, "ECHO", asList(BigInteger.valueOf(0 - Long.MAX_VALUE)));
+		//bench(c, 1000000, "ECHO", asList(BigDecimal.valueOf(0 - Long.MAX_VALUE)));
+		//bench(c, 400000, "ECHO", asList("abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789"));
+		bench(c, 1000000, "ECHO", asList(new BigInteger("92038492839048209384902834902839048209384902834902830948230948092384902839408239048920384902834902834")));
+		//bench(c, 1000000, "ECHO", asList(asList(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
+		//bench(c, 1000000, "INCR", asList("i1"));
+		//bench(c, 1000000, "LPUSHT", asList("L1", 0));
+	}
+
 	public static void main(String[] args) {
 		try {
+
 			String host = "127.0.0.1";
 			int port = 4567;
 
@@ -580,6 +599,16 @@ public class Test {
 			//c.call("ECHO", asIt(asIt("hello", 0, 1, -2)), ECHOCB);
 			//c.call("INFO", null, ECHOCB);
 
+			c.callA("SLEEP", asIt(500), ECHOCB);
+			c.callA("SLEEP", asIt(600), ECHOCB);
+			c.callA("SLEEP", asIt(700), ECHOCB);
+			c.call("SLEEP", asIt(2000), ECHOCB);
+
+			c.callA("ECHO", asIt("echo1 while sleeping"), ECHOCB);
+			c.callA("ECHO", asIt("echo2 while sleeping"), ECHOCB);
+			c.callA("INVALIDCMD", asIt("err while sleeping"), ECHOCB);
+			c.callA("ECHO", asIt("echo3 while sleeping"), ECHOCB);
+
 			c.call("PING", null, ECHOCB);
 
 			c.call("PING", null, null);
@@ -600,6 +629,7 @@ public class Test {
 			check(c, -2, "INCR", "i1", -2);
 			//Thread.sleep(2);
 
+			c.call("INCR", asIt("i2", new BigDecimal("123e-41")), ECHOCB);
 			c.call("INCR", asIt("i2", new BigDecimal("123e-41")), ECHOCB);
 
 			Object ch1ID = c.callAP("SUBSCRIBE", asIt("ch1"), ECHOCB);
@@ -624,21 +654,11 @@ public class Test {
 			System.out.println("time: " + Long.toString(System.currentTimeMillis() - time));
 			*/
 
-			bench(c, 1000000, "PING");
-			bench(c, 1000000, "PING");
-			bench(c, 1000000, "PING", null, true);
-			bench(c, 1000000, "PING", null, true);
-			//bench(c, 1000000, "ECHO", asList(0));
-			//bench(c, 1000000, "ECHO", asList("abcdefghijklmnopqrstuvwxyz0123456789"));
-			//bench(c, 1000000, "ECHO", asList(Long.MAX_VALUE));
-			//bench(c, 1000000, "ECHO", asList(0 - Long.MAX_VALUE));
-			//bench(c, 1000000, "ECHO", asList(BigInteger.valueOf(0 - Long.MAX_VALUE)));
-			//bench(c, 1000000, "ECHO", asList(BigDecimal.valueOf(0 - Long.MAX_VALUE)));
-			//bench(c, 400000, "ECHO", asList("abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789"));
-			bench(c, 1000000, "ECHO", asList(new BigInteger("92038492839048209384902834902839048209384902834902830948230948092384902839408239048920384902834902834")));
-			//bench(c, 1000000, "ECHO", asList(asList(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
-			//bench(c, 1000000, "INCR", asList("i1"));
-			//bench(c, 1000000, "LPUSHT", asList("L1", 0));
+			boolean runBench = false;
+			if (runBench) {
+				bench(c);
+			}
+
 
 			//populateMap(c, "testBigMap", 50000, 100);
 			//loadServerSend(c, 100);
