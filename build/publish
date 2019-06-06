@@ -19,6 +19,7 @@ testDeps git jq curl
 
 GHUSER="opatomic"
 GHREPO=`dirname $PWD`
+GHREPO=`basename $GHREPO`
 if [[ -z "$GHTOKEN" ]]; then
 	if [[ -z "$GHTOKENFILE" ]]; then
 		GHTOKENFILE="$HOME/githubtoken"
