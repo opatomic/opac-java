@@ -62,7 +62,7 @@ class OpaClientRecvState {
 		try {
 			// note that the callback is being called from the response parser
 			// thread. This means that all subsequent responses must wait for the callback
-			// to finish before being invoked. Therefore the callbacks must finish
+			// to finish before being invoked. Therefore the callback must finish
 			// quickly (ie, wake up a separate thread if it will not return fast)
 			if (err2 != null) {
 				cb.onFailure(err2);
