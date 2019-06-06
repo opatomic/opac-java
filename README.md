@@ -1,6 +1,6 @@
 Opatomic client for java
 
-Download latest release: [opac.jar](https://github.com/opatomic/opac-java/raw/master/build/opac.jar)
+[Latest release](https://github.com/opatomic/opac-java/releases/latest)
 
 Example usage: [Example.java](https://github.com/opatomic/opac-java/blob/master/test/Example.java?ts=4)
 

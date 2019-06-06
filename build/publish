@@ -8,25 +8,54 @@ function handleErr {
 
 trap 'handleErr $LINENO' ERR
 
-NUMSTAGED=`git diff --cached --numstat | wc -l`
-if [ $NUMSTAGED -ne 0 ]; then
-	echo "There are $NUMSTAGED staged edits. Please clear git staging area."
+
+function testDeps {
+	for i in "$@"; do $i --version > /dev/null 2>&1 || { echo "error: $i must be installed"; exit 1; } ; done
+}
+
+# make sure dependencies are installed
+testDeps git jq curl
+
+
+GHUSER="opatomic"
+GHREPO=`dirname $PWD`
+if [[ -z "$GHTOKEN" ]]; then
+	if [[ -z "$GHTOKENFILE" ]]; then
+		GHTOKENFILE="$HOME/githubtoken"
+	fi
+	if [ ! -f "$GHTOKENFILE" ]; then
+		echo "GHTOKEN or GHTOKENFILE must be set properly"
+		exit 1
+	fi
+	GHTOKEN=`cat $GHTOKENFILE`
+fi
+
+
+MODCNT=`git status --porcelain | wc -l`
+if [ $MODCNT -ne 0 ]; then
+	echo "There are $MODCNT changes. Must revert or check in changes."
 	exit 1
 fi
 
-# increment the version build number; awk must write to temp file
-awk -F '.' '{printf("%d.%d.%d",$1,$2,$3+1)}' version.txt > newver.txt
-mv newver.txt version.txt
 VERSION=`cat version.txt`
 
+VERSION="v$VERSION" ./build
 
-./build --publish
 
-git add -A ../docs/
-git add version.txt
-git add opac.jar
+# args: user, token, repo, releaseid, filename
+function uploadAsset {
+	echo "uploading $(basename $5)"
+	local UPLOADURL="https://uploads.github.com/repos/$1/$3/releases/$4/assets?name=$(basename $5)"
+	curl -s -S -u "$1:$2" -H "Content-Type: application/octet-stream" --data-binary @"$5" $UPLOADURL > /dev/null
+}
 
-git commit -m "build v$VERSION"
+GHTAG="v$VERSION"
 
-echo "published v$VERSION"
+# create release and get its id
+echo "creating release $GHTAG"
+GHRELID=`curl -s -S -u "$GHUSER:$GHTOKEN" -X POST "https://api.github.com/repos/$GHUSER/$GHREPO/releases" -d "{\"tag_name\":\"$GHTAG\"}" | jq ".id"`
+
+# upload files
+uploadAsset $GHUSER $GHTOKEN $GHREPO $GHRELID "out/opac.jar"
+
 
