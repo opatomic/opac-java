@@ -1,5 +1,6 @@
 package com.yahoo.ycsb.db;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,7 +17,9 @@ import java.util.Vector;
 
 import com.opatomic.OpaDef;
 import com.opatomic.OpaPartialParser;
+import com.opatomic.OpaRpcError;
 import com.opatomic.OpaSerializer;
+import com.opatomic.OpaUtils;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -27,6 +30,19 @@ import com.yahoo.ycsb.Status;
 
 // simple client that only performs synchronous operations. errors returned from server throw exception
 final class OpaSyncClient {
+	// TODO: move this elsewhere? rename? add ctor that accepts Throwable cause?
+	public class OpatomicException extends RuntimeException {
+		private final OpaRpcError mErr;
+
+		public OpatomicException(OpaRpcError err) {
+			mErr = err;
+		}
+
+		public OpaRpcError getRpcError() {
+			return mErr;
+		}
+	}
+
 	private final InputStream mIn;
 	private final OpaSerializer mSerializer;
 	private final OpaPartialParser mParser = new OpaPartialParser();
@@ -48,82 +64,73 @@ final class OpaSyncClient {
 		mSerializer.write(OpaDef.C_ARRAYEND);
 	}
 
-	private void sendRequest(String cmd, Object[] args) throws IOException {
-		mSerializer.write(OpaDef.C_ARRAYSTART);
-		mSerializer.writeString(cmd);
-		if (args != null && args.length > 0) {
-			mSerializer.write(OpaDef.C_ARRAYSTART);
-			for (int i = 0; i < args.length; ++i) {
-				mSerializer.writeObject(args[i]);
-			}
-			mSerializer.write(OpaDef.C_ARRAYEND);
+	private OpaRpcError handleErr(boolean throwOnErr, OpaRpcError err) {
+		if (throwOnErr) {
+			throw new OpatomicException(err);
 		}
-		mSerializer.write(OpaDef.C_ARRAYEND);
+		return err;
 	}
 
-	private List<?> parseNext() throws IOException {
+	private Object parseNext(boolean throwOnErr) throws IOException {
 		while (true) {
 			if (mPBuff.len == 0) {
 				int numRead = mIn.read(mPBuff.data);
 				if (numRead < 0) {
-					throw new RuntimeException("stream closed");
+					throw new EOFException("stream closed");
 				}
 				mPBuff.idx = 0;
 				mPBuff.len = numRead;
 			}
 			Object o = mParser.parseNext(mPBuff);
 			if (o != OpaPartialParser.NOMORE) {
+				if (!(o instanceof List)) {
+					return handleErr(throwOnErr, new OpaRpcError(OpaDef.ERR_INVRESPONSE, "response not a list", o));
+				}
+
 				List<?> r = (List<?>) o;
 				int lsz = r.size();
-				if (lsz == 0 || lsz > 3) {
-					throw new RuntimeException("unexpected response list size");
-				}
+
 				Object id = lsz > 2 ? r.get(2) : null;
 				if (id != null) {
 					// TODO: handle async id somehow? server sent some sort of message?
 					continue;
 				}
-				return r;
+
+				if (lsz == 0 || lsz > 3) {
+					return handleErr(throwOnErr, new OpaRpcError(OpaDef.ERR_INVRESPONSE, "unexpected response list size", o));
+				}
+
+				Object errObj = lsz > 1 ? r.get(1) : null;
+				if (errObj != null) {
+					return handleErr(throwOnErr, OpaUtils.convertErr(errObj));
+				}
+
+				return r.get(0);
 			}
 		}
 	}
 
-	private Object getNextOrThrow() throws IOException {
-		List<?> r = parseNext();
-		if (r.size() > 1 && r.get(1) != null) {
-			throw new RuntimeException("err response received: " + r.get(1).toString());
+	private Object callInternal(boolean throwOnErr, String cmd, Iterator<Object> args) {
+		try {
+			sendRequest(cmd, args);
+			if (mPipelineLen < 0) {
+				mSerializer.flush();
+				return parseNext(throwOnErr);
+			} else {
+				++mPipelineLen;
+				return null;
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
-		return r.get(0);
 	}
 
 	public Object call(String cmd, Iterator<Object> args) {
-		try {
-			sendRequest(cmd, args);
-			if (mPipelineLen < 0) {
-				mSerializer.flush();
-				return getNextOrThrow();
-			} else {
-				++mPipelineLen;
-				return null;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		return callInternal(true, cmd, args);
 	}
 
 	public Object callVA(String cmd, Object... args) {
-		try {
-			sendRequest(cmd, args);
-			if (mPipelineLen < 0) {
-				mSerializer.flush();
-				return getNextOrThrow();
-			} else {
-				++mPipelineLen;
-				return null;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		return callInternal(true, cmd, Arrays.asList(args).iterator());
 	}
 
 	public void startPipeline() {
@@ -145,7 +152,7 @@ final class OpaSyncClient {
 			Object results[] = new Object[mPipelineLen];
 			mPipelineLen = -1;
 			for (int i = 0; i < results.length; ++i) {
-				results[i] = getNextOrThrow();
+				results[i] = parseNext(true);
 			}
 			return results;
 		} catch (IOException e) {
