@@ -207,7 +207,7 @@ public class OpatomicClient extends DB {
 		}
 	}
 
-	private void setRangeFields(Iterator<?> it, HashMap<String, ByteIterator> record) {
+	private void setRangeFields(Iterator<?> it, Map<String, ByteIterator> record) {
 		while (it.hasNext()) {
 			Object k = it.next();
 			record.put((String)k, new ByteArrayByteIterator((byte[]) it.next()));
@@ -226,7 +226,7 @@ public class OpatomicClient extends DB {
 	}
 
 	@Override
-	public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+	public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 		if (fields == null) {
 			Object r = mClient.callVA("MRANGE", key);
 			setRangeFields(((Iterable<?>) r).iterator(), result);
@@ -286,14 +286,14 @@ public class OpatomicClient extends DB {
 	}
 
 	@Override
-	public Status insert(String table, String key, HashMap<String,ByteIterator> values) {
+	public Status insert(String table, String key, Map<String,ByteIterator> values) {
 		// TODO: support batched insertion mode (return Status.BATCHED_OK)
 		int response = setall(key, values);
 		return (!mInsertStrict || response == values.size()) ? Status.OK : Status.ERROR;
 	}
 
 	@Override
-	public Status update(String table, String key, HashMap<String,ByteIterator> values) {
+	public Status update(String table, String key, Map<String,ByteIterator> values) {
 		// note: this does not check whether the key exists. will create key if it does not exist
 		setall(key, values);
 		return Status.OK;

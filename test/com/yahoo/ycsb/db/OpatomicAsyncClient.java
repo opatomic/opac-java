@@ -115,7 +115,7 @@ public class OpatomicAsyncClient extends DB {
 	}
 
 	@Override
-	public Status read(String table, String key, Set<String> fields, final HashMap<String, ByteIterator> result) {
+	public Status read(String table, String key, Set<String> fields, final Map<String, ByteIterator> result) {
 		if (fields == null) {
 			Object r = callAndWait("MRANGE", asIt(key));
 			//if (r != null && r instanceof Iterable) {
@@ -235,14 +235,14 @@ public class OpatomicAsyncClient extends DB {
 	}
 
 	@Override
-	public Status insert(String table, String key, HashMap<String,ByteIterator> values) {
+	public Status insert(String table, String key, Map<String,ByteIterator> values) {
 		// TODO: support batched insertion
 		int response = setall(key, values);
 		return (!mInsertStrict || response == values.size()) ? Status.OK : Status.ERROR;
 	}
 
 	@Override
-	public Status update(String table, String key, HashMap<String,ByteIterator> values) {
+	public Status update(String table, String key, Map<String,ByteIterator> values) {
 		setall(key, values);
 		return Status.OK;
 	}
