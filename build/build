@@ -50,9 +50,9 @@ deldir $TMPDIR
 javadoc -quiet -notimestamp -header "opac-$VERSION" -d $DOCSDIR -sourcepath ../src com.opatomic
 
 
-## This will build the YCSB source; must set correct path to core jar file
-#mkdir $TMPDIR
-#javac -d $TMPDIR -cp ~/Downloads/ycsb-0.12.0/lib/core-0.12.0.jar:opac.jar ../test/com/yahoo/ycsb/db/*.java
+## This will build the YCSB source; must set correct path to lib folder
+#cleandir $TMPDIR
+#javac -d $TMPDIR -cp "$HOME/Downloads/ycsb-redis-binding-0.15.0/lib/*:$OUTDIR/opac.jar" ../test/com/yahoo/ycsb/db/*.java
 #jar cvf $OUTDIR/opatomic-ycsb.jar -C $TMPDIR .
 #deldir $TMPDIR
 
