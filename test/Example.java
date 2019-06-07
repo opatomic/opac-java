@@ -1,3 +1,8 @@
+/*
+ * Copyright 2018-2019 Opatomic
+ * Open sourced with ISC license. Refer to LICENSE for details.
+ */
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
