@@ -4,23 +4,54 @@
 # make sure redis and opatomic servers are running (set hostnames/ports below if necessary)
 # don't forget to clear all data in servers
 #   redis-cli FLUSHALL
-# download and extract pre-built YCSB from https://github.com/brianfrankcooper/YCSB/releases/latest
-# set the ycsb directory in the following variable...
 
-YCSBDIR=~/Downloads/ycsb-0.12.0
-OPADIR=../build
-WORK=$YCSBDIR/workloads/workloada
+YCSBDIR="ycsb-redis-binding-0.15.0"
+OPADIR="../../build/out"
+WORK="$YCSBDIR/workloads/workloada"
 THREADS=4
 RECCNT=100000
 OPCOUNT=60000
 
 
+function deldir {
+	if [ -d "$1" ]; then
+		rm -r "$1"
+	fi
+}
+
+function cleandir {
+	deldir $1
+	mkdir $1
+}
+
+
+if [ ! -d "ycsb" ]; then
+	mkdir "ycsb"
+fi
+
+pushd ycsb > /dev/null
+
+if [[ ! -f "ycsb-redis-binding-0.15.0.tar.gz" ]]; then
+	wget "https://github.com/brianfrankcooper/YCSB/releases/download/0.15.0/ycsb-redis-binding-0.15.0.tar.gz"
+	tar -xzf "ycsb-redis-binding-0.15.0.tar.gz"
+fi
+
+
+if [ -f "opatomic-binding.jar" ]; then
+	rm "opatomic-binding.jar"
+fi
+
+cleandir tmp
+javac -d tmp -cp "$YCSBDIR/lib/*:$OPADIR/opac.jar" ../com/yahoo/ycsb/db/*.java
+jar cvf opatomic-binding.jar -C tmp .
+deldir tmp
+
+
 # note: workloada is used to load data into db
 # workload order specified at https://github.com/brianfrankcooper/YCSB/wiki/Core-Workloads
 
-java -cp "$YCSBDIR/lib/*:$OPADIR/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.OpatomicClient -p "opatomic.host=127.0.0.1" -P $YCSBDIR/workloads/workloada -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -load
-java -cp "$YCSBDIR/lib/*:$OPADIR/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.OpatomicClient -p "opatomic.host=127.0.0.1" -P $WORK -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -p operationcount=$OPCOUNT -p requestdistribution=zipfian -t
-
+java -cp "$YCSBDIR/lib/*:$OPADIR/opac.jar:opatomic-binding.jar" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.OpatomicClient -p "opatomic.host=127.0.0.1" -P $YCSBDIR/workloads/workloada -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -load
+java -cp "$YCSBDIR/lib/*:$OPADIR/opac.jar:opatomic-binding.jar" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.OpatomicClient -p "opatomic.host=127.0.0.1" -P $WORK -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -p operationcount=$OPCOUNT -p requestdistribution=zipfian -t
 
 java -cp "$YCSBDIR/lib/*:$YCSBDIR/redis-binding/lib/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -p "redis.host=127.0.0.1" -P $YCSBDIR/workloads/workloada -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -load
 java -cp "$YCSBDIR/lib/*:$YCSBDIR/redis-binding/lib/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -p "redis.host=127.0.0.1" -P $WORK -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -p operationcount=$OPCOUNT -p requestdistribution=zipfian -t
