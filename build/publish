@@ -39,6 +39,12 @@ fi
 
 VERSION=`cat version.txt`
 
+RELID=`curl -s -S "https://api.github.com/repos/$GHUSER/$GHREPO/releases/tags/v$VERSION" | jq ".id"`
+if [ $RELID != "null" ]; then
+	echo "github release v$VERSION already exists"
+	exit 1
+fi
+
 VERSION="v$VERSION" ./build
 
 
