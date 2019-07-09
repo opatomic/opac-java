@@ -27,6 +27,7 @@ import com.opatomic.CallbackSF;
 import com.opatomic.OpaClient;
 import com.opatomic.OpaRpcError;
 import com.opatomic.OpaStreamClient;
+import com.opatomic.OpaUtils;
 import com.opatomic.WaitCallbackSF;
 
 
@@ -66,7 +67,7 @@ public class OpatomicAsyncClient extends DB {
 
 		if (pass != null) {
 			Object r = callAndWait("AUTH", asIt(pass));
-			if (r != Boolean.TRUE) {
+			if (r == Boolean.FALSE || OpaUtils.compare(r, 0) == 0) {
 				throw new RuntimeException("auth failed");
 			}
 		}

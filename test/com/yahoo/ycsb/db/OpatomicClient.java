@@ -186,7 +186,7 @@ public class OpatomicClient extends DB {
 			mClient = new OpaSyncClient(mSocket.getInputStream(), mSocket.getOutputStream(), buffLen);
 			if (pass != null) {
 				Object r = mClient.callVA("AUTH", pass);
-				if (r != Boolean.TRUE) {
+				if (r == Boolean.FALSE || OpaUtils.compare(r, 0) == 0) {
 					throw new RuntimeException("auth failed");
 				}
 			}
