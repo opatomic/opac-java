@@ -47,7 +47,7 @@ jar cvf $OUTDIR/opac.jar -C $TMPDIR .
 deldir $TMPDIR
 
 
-javadoc -quiet -notimestamp -header "opac-$VERSION" -d $DOCSDIR -sourcepath ../src com.opatomic
+javadoc -quiet -notimestamp --no-module-directories -header "opac-$VERSION" -d $DOCSDIR -sourcepath ../src com.opatomic
 
 
 ## This will build the YCSB source; must set correct path to lib folder
