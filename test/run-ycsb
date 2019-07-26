@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # build opatomic jars using build script
 # make sure redis and opatomic servers are running (set hostnames/ports below if necessary)
@@ -13,15 +13,15 @@ RECCNT=100000
 OPCOUNT=60000
 
 
-function deldir {
+deldir() {
 	if [ -d "$1" ]; then
 		rm -r "$1"
 	fi
 }
 
-function cleandir {
-	deldir $1
-	mkdir $1
+cleandir() {
+	deldir "$1"
+	mkdir "$1"
 }
 
 
@@ -29,9 +29,9 @@ if [ ! -d "ycsb" ]; then
 	mkdir "ycsb"
 fi
 
-pushd ycsb > /dev/null
+cd "ycsb" || exit 1
 
-if [[ ! -f "ycsb-redis-binding-0.15.0.tar.gz" ]]; then
+if [ ! -f "ycsb-redis-binding-0.15.0.tar.gz" ]; then
 	wget "https://github.com/brianfrankcooper/YCSB/releases/download/0.15.0/ycsb-redis-binding-0.15.0.tar.gz"
 	tar -xzf "ycsb-redis-binding-0.15.0.tar.gz"
 fi
@@ -55,6 +55,4 @@ java -cp "$YCSBDIR/lib/*:$OPADIR/opac.jar:opatomic-binding.jar" com.yahoo.ycsb.C
 
 java -cp "$YCSBDIR/lib/*:$YCSBDIR/redis-binding/lib/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -p "redis.host=127.0.0.1" -P $YCSBDIR/workloads/workloada -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -load
 java -cp "$YCSBDIR/lib/*:$YCSBDIR/redis-binding/lib/*" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -p "redis.host=127.0.0.1" -P $WORK -threads $THREADS -p recordcount=$RECCNT -p insertorder=ordered -p operationcount=$OPCOUNT -p requestdistribution=zipfian -t
-
-
 
