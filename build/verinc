@@ -34,6 +34,7 @@ DOCSDIR="../docs"
 if [ -d "$DOCSDIR" ]; then
 	rm -r "$DOCSDIR"
 fi
+mkdir "$DOCSDIR"
 javadoc -quiet -notimestamp --no-module-directories -header "opac-$NEXTVER" -d "$DOCSDIR" -sourcepath ../src com.opatomic
 git add -A ../docs/
 
