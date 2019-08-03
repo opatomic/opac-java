@@ -1,53 +1,42 @@
-#!/bin/bash
-
-function handleErr {
-	SNAME=$(basename $BASH_SOURCE)
-	echo "$SNAME: Error on line $1"
-	exit 1
-}
-
-trap 'handleErr $LINENO' ERR
+#!/bin/sh
 
 
 # note: must have jdk installed to build!
 
-TMPDIR=tmp
-OUTDIR=out
-DOCSDIR=../docs
+TMPDIR="tmp"
+OUTDIR="out"
+DOCSDIR="../docs"
 
 
-function deldir {
+deldir() {
 	if [ -d "$1" ]; then
 		rm -r "$1"
 	fi
 }
 
-function cleandir {
-	deldir $1
-	mkdir $1
+cleandir() {
+	deldir "$1"
+	mkdir "$1"
 }
 
 
-if [[ -z "$VERSION" ]]; then
-	VERSION=`git describe --tags --long --dirty 2> /dev/null || echo $(cat version.txt)-dev`
-fi
+VERSION="$(./verget)"
 
-
-cleandir $OUTDIR
-cleandir $TMPDIR
-cleandir $DOCSDIR
+cleandir "$OUTDIR"
+cleandir "$TMPDIR"
+cleandir "$DOCSDIR"
 
 # TODO: look into compiling for older versions of java
-#javac -target 1.5 -source 1.5 -d $TMPDIR ../src/com/opatomic/*.java
-javac -d $TMPDIR ../src/com/opatomic/*.java
+#javac -target 1.5 -source 1.5 -d "$TMPDIR" ../src/com/opatomic/*.java
+javac -d "$TMPDIR" ../src/com/opatomic/*.java
 # TODO: add license file to jar?
-echo "opac-version: $VERSION" >> $TMPDIR/build.txt
+echo "opac-version: $VERSION" >> "$TMPDIR/build.txt"
 #TODO: add more info to build.txt - date/time, machine info?
-jar cvf $OUTDIR/opac.jar -C $TMPDIR .
-deldir $TMPDIR
+jar cvf "$OUTDIR/opac.jar" -C "$TMPDIR" .
+deldir "$TMPDIR"
 
 
-javadoc -quiet -notimestamp --no-module-directories -header "opac-$VERSION" -d $DOCSDIR -sourcepath ../src com.opatomic
+javadoc -quiet -notimestamp --no-module-directories -header "opac-$VERSION" -d "$DOCSDIR" -sourcepath ../src com.opatomic
 
 
 ## This will build the YCSB source; must set correct path to lib folder
