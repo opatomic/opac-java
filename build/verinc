@@ -30,7 +30,13 @@ NEXTVER="$VER1.$VER2.$((VER3+1))"
 
 echo "$NEXTVER" > version.txt
 
+DOCSDIR="../docs"
+if [ -d "$DOCSDIR" ]; then
+	rm -r "$DOCSDIR"
+fi
+javadoc -quiet -notimestamp --no-module-directories -header "opac-$NEXTVER" -d "$DOCSDIR" -sourcepath ../src com.opatomic
 git add -A ../docs/
+
 git add version.txt
 
 git commit -m "increment version to v$NEXTVER"
