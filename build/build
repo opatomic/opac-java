@@ -5,7 +5,6 @@
 
 TMPDIR="tmp"
 OUTDIR="out"
-DOCSDIR="../docs"
 
 
 deldir() {
@@ -24,11 +23,8 @@ VERSION="$(./verget)"
 
 cleandir "$OUTDIR"
 cleandir "$TMPDIR"
-cleandir "$DOCSDIR"
 
-# TODO: look into compiling for older versions of java
-#javac -target 1.5 -source 1.5 -d "$TMPDIR" ../src/com/opatomic/*.java
-javac -d "$TMPDIR" ../src/com/opatomic/*.java
+javac --release 6 -d "$TMPDIR" ../src/com/opatomic/*.java
 # TODO: add license file to jar?
 echo "opac-version: $VERSION" >> "$TMPDIR/build.txt"
 #TODO: add more info to build.txt - date/time, machine info?
@@ -36,7 +32,9 @@ jar cvf "$OUTDIR/opac.jar" -C "$TMPDIR" .
 deldir "$TMPDIR"
 
 
-javadoc -quiet -notimestamp --no-module-directories -header "opac-$VERSION" -d "$DOCSDIR" -sourcepath ../src com.opatomic
+#DOCSDIR="../docs"
+#cleandir "$DOCSDIR"
+#javadoc -quiet -notimestamp --no-module-directories -header "opac-$VERSION" -d "$DOCSDIR" -sourcepath ../src com.opatomic
 
 
 ## This will build the YCSB source; must set correct path to lib folder
