@@ -30,7 +30,7 @@ public class OpaRpcError {
 		if (data != null) {
 			return OpaUtils.stringify(Arrays.asList(code, msg, data));
 		} else if (msg != null) {
-			return OpaUtils.stringify(Arrays.asList(code, msg));
+			return OpaUtils.stringify(Arrays.asList((Object) Integer.valueOf(code), msg));
 		}
 		return Integer.toString(code);
 	}
