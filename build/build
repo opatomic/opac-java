@@ -24,7 +24,7 @@ VERSION="$(./verget)"
 cleandir "$OUTDIR"
 cleandir "$TMPDIR"
 
-javac --release 6 -d "$TMPDIR" ../src/com/opatomic/*.java
+javac $JCFLAGS -d "$TMPDIR" ../src/com/opatomic/*.java
 # TODO: add license file to jar?
 echo "opac-version: $VERSION" >> "$TMPDIR/build.txt"
 #TODO: add more info to build.txt - date/time, machine info?

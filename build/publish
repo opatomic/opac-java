@@ -57,7 +57,7 @@ if [ "$GHRELID" = "null" ]; then
 	GHRELID=$(curl -s -S -u "$GHUSER:$GHTOKEN" -X POST "https://api.github.com/repos/$GHUSER/$GHREPO/releases" -d "{\"tag_name\":\"$GHTAG\"}" | jq ".id")
 fi
 
-./build
+JCFLAGS="--release 6" ./build
 
 
 # upload files
