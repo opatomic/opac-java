@@ -45,7 +45,7 @@ final class Utf8Utils {
 					int ch2 = s.charAt(i + 1);
 					// confirm valid low surrogate
 					if (ch2 >= 0xDC00 && ch2 <= 0xDFFF) {
-						numBytes += 3;
+						numBytes += 2;
 						++i;
 						continue;
 					}
