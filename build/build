@@ -27,6 +27,7 @@ cleandir "$TMPDIR"
 javac $JCFLAGS -d "$TMPDIR" ../src/com/opatomic/*.java
 # TODO: add license file to jar?
 echo "opac-version: $VERSION" >> "$TMPDIR/build.txt"
+cp ../LICENSE "$TMPDIR"
 #TODO: add more info to build.txt - date/time, machine info?
 jar cvf "$OUTDIR/opac.jar" -C "$TMPDIR" .
 deldir "$TMPDIR"
