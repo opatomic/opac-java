@@ -35,7 +35,9 @@ if [ -d "$DOCSDIR" ]; then
 	rm -r "$DOCSDIR"
 fi
 mkdir "$DOCSDIR"
-javadoc -quiet -notimestamp --no-module-directories -header "opac-$NEXTVER" -d "$DOCSDIR" -sourcepath ../src com.opatomic
+# note: javadoc option "-source 8" is used as a bug workaround when also using -link
+#       see: https://issues.apache.org/jira/browse/MJAVADOC-615
+javadoc -quiet -notimestamp --no-module-directories -link https://docs.oracle.com/javase/7/docs/api/ -source 8 -header "opac-$NEXTVER" -d "$DOCSDIR" -sourcepath ../src com.opatomic
 git add -A ../docs/
 
 git add version.txt
