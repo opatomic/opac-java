@@ -160,20 +160,18 @@ public class OpaStreamClient implements OpaClient<Object,OpaRpcError> {
 
 	static void writeRequest(OpaSerializer s, String cmd, Iterator<Object> args, long id, boolean noResponse) throws IOException {
 		s.write(OpaDef.C_ARRAYSTART);
-		s.writeString(cmd);
-		if (args != null) {
-			s.writeArray(args);
-		}
 		if (id != 0) {
-			if (args == null) {
-				s.write(OpaDef.C_NULL);
-			}
 			s.writeLong(id);
 		} else if (noResponse) {
-			if (args == null) {
-				s.write(OpaDef.C_NULL);
-			}
+			s.write(OpaDef.C_FALSE);
+		} else {
 			s.write(OpaDef.C_NULL);
+		}
+		s.writeString(cmd);
+		if (args != null) {
+			while (args.hasNext()) {
+				s.writeObject(args.next());
+			}
 		}
 		s.write(OpaDef.C_ARRAYEND);
 	}

@@ -34,14 +34,13 @@ class OpaClientRecvState {
 	private void handleResponse(Object result, Object err, Object id) {
 		CallbackSF<Object,OpaRpcError> cb;
 		if (id != null) {
-			if (!(id instanceof Long)) {
-				//throw new RuntimeException("response id is not a Long");
-				System.err.println("response id is not a Long: " + OpaUtils.stringify(id));
-				return;
+			if (id instanceof Long) {
+				cb = ((Long)id).longValue() < 0 ? mAsyncCallbacks.get(id) : mAsyncCallbacks.remove(id);
+			} else {
+				cb = null;
 			}
-			cb = ((Long)id).longValue() < 0 ? mAsyncCallbacks.get(id) : mAsyncCallbacks.remove(id);
 			if (cb == null) {
-				//throw new RuntimeException("Unknown callback id " + OpaUtils.stringify(id));
+				// TODO: handle unknown asyncid with a callback
 				System.err.println("Unknown callback id " + OpaUtils.stringify(id));
 				return;
 			}
@@ -85,12 +84,10 @@ class OpaClientRecvState {
 		//	throw new RuntimeException("Response is not a list");
 		//}
 		List<?> l = (List<?>) o;
-		if (l.size() == 1) {
-			handleResponse(l.get(0), null, null);
-		} else if (l.size() == 2) {
-			handleResponse(l.get(0), l.get(1), null);
+		if (l.size() == 2) {
+			handleResponse(l.get(1), null, l.get(0));
 		} else if (l.size() == 3) {
-			handleResponse(l.get(0), l.get(1), l.get(2));
+			handleResponse(l.get(1), l.get(2), l.get(0));
 		} else {
 			throw new RuntimeException("Response list is wrong size: " + l.size());
 		}

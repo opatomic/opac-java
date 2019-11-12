@@ -62,9 +62,12 @@ final class OpaSyncClient {
 
 	private void sendRequest(String cmd, Iterator<Object> args) throws IOException {
 		mSerializer.write(OpaDef.C_ARRAYSTART);
+		mSerializer.write(OpaDef.C_NULL);
 		mSerializer.writeString(cmd);
 		if (args != null) {
-			mSerializer.writeArray(args);
+			while (args.hasNext()) {
+				mSerializer.writeObject(args.next());
+			}
 		}
 		mSerializer.write(OpaDef.C_ARRAYEND);
 	}
@@ -95,22 +98,22 @@ final class OpaSyncClient {
 				List<?> r = (List<?>) o;
 				int lsz = r.size();
 
-				Object id = lsz > 2 ? r.get(2) : null;
+				if (lsz < 2 || lsz > 3) {
+					return handleErr(throwOnErr, new OpaRpcError(OpaDef.ERR_INVRESPONSE, "unexpected response list size", o));
+				}
+
+				Object id = r.get(0);
 				if (id != null) {
 					// TODO: handle async id somehow? server sent some sort of message?
 					continue;
 				}
 
-				if (lsz == 0 || lsz > 3) {
-					return handleErr(throwOnErr, new OpaRpcError(OpaDef.ERR_INVRESPONSE, "unexpected response list size", o));
-				}
-
-				Object errObj = lsz > 1 ? r.get(1) : null;
+				Object errObj = lsz > 2 ? r.get(2) : null;
 				if (errObj != null) {
 					return handleErr(throwOnErr, OpaUtils.convertErr(errObj));
 				}
 
-				return r.get(0);
+				return r.get(1);
 			}
 		}
 	}
