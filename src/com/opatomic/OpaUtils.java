@@ -210,7 +210,7 @@ public class OpaUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
 			stringify(o, spaceBytes, 0, out);
-			return out.toString("UTF-8");
+			return out.toString(UTF8CS);
 		} catch(IOException e) {
 			throw new RuntimeException(e);
 		}
