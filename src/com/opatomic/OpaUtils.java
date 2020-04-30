@@ -99,38 +99,59 @@ public class OpaUtils {
 		throw new IllegalArgumentException("Unsupported type: " + o.getClass().toString());
 	}
 
-	private static void writeStringBytes(byte[] bytes, OutputStream out) throws IOException {
-		for (int i = 0; i < bytes.length; ++i) {
-			int b = bytes[i];
-			switch (b) {
+	private static void writeUChar(char ch, OutputStream out) throws IOException {
+		out.write('\\');
+		out.write('u');
+		out.write(HEXCHARS, (ch & 0xF000) >> 12, 1);
+		out.write(HEXCHARS, (ch & 0x0F00) >>  8, 1);
+		out.write(HEXCHARS, (ch & 0x00F0) >>  4, 1);
+		out.write(HEXCHARS, (ch & 0x000F), 1);
+	}
+
+	private static void writeEscapedString(CharSequence s, int offset, int len, OutputStream out) throws IOException {
+		for (int end = offset + len; offset < end; ++offset) {
+			char ch = s.charAt(offset);
+			switch (ch) {
 				case '"':  out.write('\\'); out.write('"');  break;
 				case '\\': out.write('\\'); out.write('\\'); break;
+				case '\b': out.write('\\'); out.write('b');  break;
+				case '\f': out.write('\\'); out.write('f');  break;
 				case '\t': out.write('\\'); out.write('t');  break;
 				case '\r': out.write('\\'); out.write('r');  break;
 				case '\n': out.write('\\'); out.write('n');  break;
 				default:
-					if (b < 0x20) {
-						out.write('\\');
-						out.write('u');
-						out.write('0');
-						out.write('0');
-						out.write(HEXCHARS, (b & 0xF0) >> 4, 1);
-						out.write(HEXCHARS, (b & 0x0F), 1);
+					if (ch < 0x20) {
+						// escape control chars
+						writeUChar(ch, out);
+					} else if (ch < 0x80) {
+						out.write(ch);
+					} else if (ch < 0x800) {
+						out.write(0xC0 | (ch >> 6));
+						out.write(0x80 | (ch & 0x3F));
+					} else if (ch < 0xD800 || ch > 0xDFFF) {
+						out.write(0xE0 | (ch >> 12));
+						out.write(0x80 | ((ch >> 6) & 0x3F));
+						out.write(0x80 | (ch & 0x3F));
 					} else {
-						out.write(b);
+						// surrogate pair
+						// TODO: encode 2 surrogate pairs as a 4 byte utf8 sequence?
+						// TODO: validate chars to make sure they're valid unicode?
+						writeUChar(ch, out);
 					}
 			}
 		}
 	}
 
 	private static void stringify(String s, OutputStream out) throws IOException {
-		byte[] bytes = s.getBytes(UTF8CS);
 		out.write('"');
-		if (bytes.length > 0 && (bytes[0] == '~' || bytes[0] == '^' || bytes[0] == '`')) {
-			// if first char is ~ or ^ or ` then it must be escaped
-			out.write('~');
+		if (s.length() > 0) {
+			char ch = s.charAt(0);
+			if (ch == '~' || ch == '^' || ch == '`') {
+				// if first char is ~ or ^ or ` then it must be escaped
+				out.write('~');
+			}
 		}
-		writeStringBytes(bytes, out);
+		writeEscapedString(s, 0, s.length(), out);
 		out.write('"');
 	}
 
@@ -142,13 +163,14 @@ public class OpaUtils {
 				out.write(base64Encode(buff, 0, buff.length, true));
 				out.write('"');
 				return;
-			}
-		}
+ 			}
+ 		}
 		// if chars are all ascii then use different prefix and do not encode as base-64
 		out.write(BINPREFIX);
-		writeStringBytes(buff, out);
-		out.write('"');
-	}
+		String s = new String(buff, UTF8CS);
+		writeEscapedString(s, 0, s.length(), out);
+ 		out.write('"');
+ 	}
 
 	private static void writeIndent(byte[] space, int depth, OutputStream out) throws IOException {
 		if (space != null && space.length > 0) {
