@@ -5,59 +5,17 @@
 
 package com.opatomic;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 public class OpaUtils {
-	private static final Charset UTF8CS = Charset.forName("UTF-8");
-	private static final byte[] B64PREFIX = "\"~b64".getBytes();
-	private static final byte[] BINPREFIX = "\"~bin".getBytes();
-	private static final byte[] NULLCHARS = "null".getBytes();
-	private static final byte[] HEXCHARS = "0123456789abcdef".getBytes();
-
-	private static final byte[] ENC_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
-
-
-	private static byte[] base64Encode(byte[] buff, int pos, int len, boolean appendEquals) {
-		int end = pos + len - 2;
-		int numBytes = ((len / 3) << 2);
-		int rem = len % 3;
-		if (rem > 0) {
-			numBytes += appendEquals ? 4 : rem + 1;
-		}
-		byte[] enc = new byte[numBytes];
-		int destPos = 0;
-		while (pos < end) {
-			enc[destPos++] = ENC_TABLE[((buff[pos] & 0xFC) >> 2)];
-			enc[destPos++] = ENC_TABLE[((buff[pos++] & 0x03) << 4) | ((buff[pos] & 0xF0) >> 4)];
-			enc[destPos++] = ENC_TABLE[((buff[pos++] & 0x0F) << 2) | ((buff[pos] & 0xC0) >> 6)];
-			enc[destPos++] = ENC_TABLE[(buff[pos++] & 0x3F)];
-		}
-		if (rem == 1) {
-			enc[destPos++] = ENC_TABLE[((buff[pos] & 0xFC) >> 2)];
-			enc[destPos++] = ENC_TABLE[((buff[pos] & 0x03) << 4)];
-			if (appendEquals) {
-				enc[destPos++] = '=';
-				enc[destPos] = '=';
-			}
-		} else if (rem == 2) {
-			enc[destPos++] = ENC_TABLE[((buff[pos] & 0xFC) >> 2)];
-			enc[destPos++] = ENC_TABLE[((buff[pos++] & 0x03) << 4) | ((buff[pos] & 0xF0) >> 4)];
-			enc[destPos++] = ENC_TABLE[((buff[pos] & 0x0F) << 2)];
-			if (appendEquals) {
-				enc[destPos] = '=';
-			}
-		}
-		return enc;
-	}
+	private static final String NULLCHARS = "null";
+	private static final char[] HEXCHARS = "0123456789abcdef".toCharArray();
 
 	private static final class ObjIterator<T> implements Iterator<T> {
 		private T[] mVals;
@@ -99,91 +57,72 @@ public class OpaUtils {
 		throw new IllegalArgumentException("Unsupported type: " + o.getClass().toString());
 	}
 
-	private static void writeUChar(char ch, OutputStream out) throws IOException {
-		out.write('\\');
-		out.write('u');
-		out.write(HEXCHARS, (ch & 0xF000) >> 12, 1);
-		out.write(HEXCHARS, (ch & 0x0F00) >>  8, 1);
-		out.write(HEXCHARS, (ch & 0x00F0) >>  4, 1);
-		out.write(HEXCHARS, (ch & 0x000F), 1);
+	private static void appendHex(CharSequence prefix, int ch, Appendable out) throws IOException {
+		out.append(prefix);
+		out.append(HEXCHARS[(ch & 0x00F0) >> 4]);
+		out.append(HEXCHARS[ch & 0x000F]);
 	}
 
-	private static void writeEscapedString(CharSequence s, int offset, int len, OutputStream out) throws IOException {
-		for (int end = offset + len; offset < end; ++offset) {
-			char ch = s.charAt(offset);
+	private static void stringify(CharSequence s, Appendable out) throws IOException {
+		out.append('"');
+		for (int pos = 0; pos < s.length(); ++pos) {
+			char ch = s.charAt(pos);
 			switch (ch) {
-				case '"':  out.write('\\'); out.write('"');  break;
-				case '\\': out.write('\\'); out.write('\\'); break;
-				case '\b': out.write('\\'); out.write('b');  break;
-				case '\f': out.write('\\'); out.write('f');  break;
-				case '\t': out.write('\\'); out.write('t');  break;
-				case '\r': out.write('\\'); out.write('r');  break;
-				case '\n': out.write('\\'); out.write('n');  break;
+				case '"':  out.append('\\'); out.append('"');  break;
+				case '\\': out.append('\\'); out.append('\\'); break;
+				case '\b': out.append('\\'); out.append('b');  break;
+				case '\f': out.append('\\'); out.append('f');  break;
+				case '\n': out.append('\\'); out.append('n');  break;
+				case '\r': out.append('\\'); out.append('r');  break;
+				case '\t': out.append('\\'); out.append('t');  break;
 				default:
-					if (ch < 0x20) {
-						// escape control chars
-						writeUChar(ch, out);
-					} else if (ch < 0x80) {
-						out.write(ch);
-					} else if (ch < 0x800) {
-						out.write(0xC0 | (ch >> 6));
-						out.write(0x80 | (ch & 0x3F));
-					} else if (ch < 0xD800 || ch > 0xDFFF) {
-						out.write(0xE0 | (ch >> 12));
-						out.write(0x80 | ((ch >> 6) & 0x3F));
-						out.write(0x80 | (ch & 0x3F));
+					if (ch >= 0x20 && ch != 0x7f) {
+						out.append(ch);
 					} else {
-						// surrogate pair
-						// TODO: encode 2 surrogate pairs as a 4 byte utf8 sequence?
-						// TODO: validate chars to make sure they're valid unicode?
-						writeUChar(ch, out);
+						// escape control chars
+						appendHex("\\u00", ch, out);
 					}
 			}
 		}
+		out.append('"');
 	}
 
-	private static void stringify(String s, OutputStream out) throws IOException {
-		out.write('"');
-		if (s.length() > 0) {
-			char ch = s.charAt(0);
-			if (ch == '~' || ch == '^' || ch == '`') {
-				// if first char is ~ or ^ or ` then it must be escaped
-				out.write('~');
+	private static void stringify(byte[] buff, Appendable out) throws IOException {
+		out.append('\'');
+		for (int pos = 0; pos < buff.length; ++pos) {
+			int ch = buff[pos];
+			switch (ch) {
+				case '\'': out.append('\\'); out.append('\''); break;
+				case '\\': out.append('\\'); out.append('\\'); break;
+				case '\b': out.append('\\'); out.append('b');  break;
+				case '\f': out.append('\\'); out.append('f');  break;
+				case '\n': out.append('\\'); out.append('n');  break;
+				case '\r': out.append('\\'); out.append('r');  break;
+				case '\t': out.append('\\'); out.append('t');  break;
+				default:
+					if (ch >= 0x20 && ch != 0x7f) {
+						// normal ascii character
+						out.append((char) ch);
+					} else {
+						appendHex("\\x", ch, out);
+					}
 			}
 		}
-		writeEscapedString(s, 0, s.length(), out);
-		out.write('"');
+		out.append('\'');
 	}
 
-	private static void stringify(byte[] buff, OutputStream out) throws IOException {
-		for (int i = 0; i < buff.length; ++i) {
-			int ch = buff[i];
-			if (ch < 0x20 && ch != '\r' && ch != '\n' && ch != '\t') {
-				out.write(B64PREFIX);
-				out.write(base64Encode(buff, 0, buff.length, true));
-				out.write('"');
-				return;
- 			}
- 		}
-		// if chars are all ascii then use different prefix and do not encode as base-64
-		out.write(BINPREFIX);
-		String s = new String(buff, UTF8CS);
-		writeEscapedString(s, 0, s.length(), out);
- 		out.write('"');
- 	}
-
-	private static void writeIndent(byte[] space, int depth, OutputStream out) throws IOException {
-		if (space != null && space.length > 0) {
-			out.write('\n');
+	private static void writeIndent(CharSequence space, int depth, Appendable out) throws IOException {
+		if (space != null && space.length() > 0) {
+			out.append('\n');
 			for (; depth > 0; --depth) {
-				out.write(space);
+				out.append(space);
 			}
 		}
 	}
 
-	private static void stringify(Object o, byte[] space, int depth, OutputStream out) throws IOException {
+	private static void stringify(Object o, CharSequence space, int depth, Appendable out) throws IOException {
 		if (o == null) {
-			out.write(NULLCHARS);
+			out.append(NULLCHARS);
 		} else if (o instanceof String) {
 			stringify((String)o, out);
 		} else if (o instanceof byte[]) {
@@ -191,8 +130,8 @@ public class OpaUtils {
 		} else if (o instanceof Iterable || o instanceof Object[]) {
 			Iterator<?> it = getIt(o);
 			if (!it.hasNext()) {
-				out.write('[');
-				out.write(']');
+				out.append('[');
+				out.append(']');
 				return;
 			}
 			/*
@@ -209,30 +148,29 @@ public class OpaUtils {
 				return;
 			}
 			*/
-			out.write('[');
+			out.append('[');
 			writeIndent(space, depth + 1, out);
 			while (true) {
 				stringify(it.next(), space, depth + 1, out);
 				if (!it.hasNext()) {
 					break;
 				}
-				out.write(',');
+				out.append(',');
 				writeIndent(space, depth + 1, out);
 			}
 			writeIndent(space, depth, out);
-			out.write(']');
+			out.append(']');
 		} else {
 			// TODO: throw exception for Double/Float objects when they are NaN or +/-Infinity (not finite)
-			out.write(o.toString().getBytes(UTF8CS));
+			out.append(o.toString());
 		}
 	}
 
-	public static String stringify(Object o, String space) {
-		byte[] spaceBytes = space == null || space.length() == 0 ? null : space.getBytes(UTF8CS);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
+	public static String stringify(Object o, CharSequence space) {
+		StringBuilder sb = new StringBuilder();
 		try {
-			stringify(o, spaceBytes, 0, out);
-			return out.toString(UTF8CS);
+			stringify(o, space, 0, sb);
+			return sb.toString();
 		} catch(IOException e) {
 			throw new RuntimeException(e);
 		}
