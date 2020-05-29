@@ -118,7 +118,7 @@ public class OpatomicAsyncClient extends DB {
 	@Override
 	public Status read(String table, String key, Set<String> fields, final Map<String, ByteIterator> result) {
 		if (fields == null) {
-			Object r = callAndWait("MRANGE", asIt(key));
+			Object r = callAndWait("DRANGE", asIt(key));
 			//if (r != null && r instanceof Iterable) {
 				Iterator<?> it = ((Iterable<?>) r).iterator();
 				while (it.hasNext()) {
@@ -142,9 +142,9 @@ public class OpatomicAsyncClient extends DB {
 			if (fields.size() > 0) {
 				Iterator<String> it2 = fields.iterator();
 				for (int i = 0; i < fields.size() - 1; ++i) {
-					mClient.call("MGET", asIt(key, it2.next()), cb);
+					mClient.call("DGET", asIt(key, it2.next()), cb);
 				}
-				Object last = callAndWait("MGET", asIt(key, it2.next()));
+				Object last = callAndWait("DGET", asIt(key, it2.next()));
 				result.put(it1.next(), new ByteArrayByteIterator((byte[]) last));
 			}
 
@@ -176,7 +176,7 @@ public class OpatomicAsyncClient extends DB {
 
 	private void readFields(final String key, Set<String> fields, final Map<String, ByteIterator> result) {
 		if (fields == null || fields.size() == 0) {
-			mClient.call("MRANGE", asIt(key), new CallbackSF<Object,OpaRpcError>() {
+			mClient.call("DRANGE", asIt(key), new CallbackSF<Object,OpaRpcError>() {
 				@Override
 				public void onFailure(OpaRpcError err) {
 					mError = err;
@@ -194,7 +194,7 @@ public class OpatomicAsyncClient extends DB {
 		} else {
 			ToMap cb = new ToMap(fields.iterator(), result);
 			for (Iterator<String> it = fields.iterator(); it.hasNext(); ) {
-				mClient.call("MGET", asIt(key, it.next()), cb);
+				mClient.call("DGET", asIt(key, it.next()), cb);
 			}
 		}
 	}
@@ -232,7 +232,7 @@ public class OpatomicAsyncClient extends DB {
 			args.add(e.getKey());
 			args.add(e.getValue().toArray());
 		}
-		return callIntResult("MSET", args.iterator());
+		return callIntResult("DSET", args.iterator());
 	}
 
 	@Override

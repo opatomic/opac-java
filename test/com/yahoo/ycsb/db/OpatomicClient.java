@@ -222,7 +222,7 @@ public class OpatomicClient extends DB {
 		for (int i = 0; i < keys.size(); ++i) {
 			Iterator<String> it = fields.iterator();
 			while (it.hasNext()) {
-				mClient.callVA("MGET", keys.get(i), it.next());
+				mClient.callVA("DGET", keys.get(i), it.next());
 			}
 		}
 		return mClient.sendPipeline();
@@ -231,7 +231,7 @@ public class OpatomicClient extends DB {
 	@Override
 	public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 		if (fields == null) {
-			Object r = mClient.callVA("MRANGE", key);
+			Object r = mClient.callVA("DRANGE", key);
 			setRangeFields(((Iterable<?>) r).iterator(), result);
 		} else {
 			Object results[] = getFields(Arrays.asList(key), fields);
@@ -252,7 +252,7 @@ public class OpatomicClient extends DB {
 		if (fields == null) {
 			mClient.startPipeline();
 			for (int i = 0; i < keys.size(); ++i) {
-				mClient.callVA("MRANGE", keys.get(i));
+				mClient.callVA("DRANGE", keys.get(i));
 			}
 			Object results[] = mClient.sendPipeline();
 			for (int i = 0; i < results.length; ++i) {
@@ -284,7 +284,7 @@ public class OpatomicClient extends DB {
 			args.add(e.getKey());
 			args.add(e.getValue().toArray());
 		}
-		Object result = mClient.call("MSET", args.iterator());
+		Object result = mClient.call("DSET", args.iterator());
 		return ((Number)result).intValue();
 	}
 

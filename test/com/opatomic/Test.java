@@ -467,7 +467,7 @@ public class Test {
 				//args.add(s);
 				//args.add(s);
 			}
-			c.call("MSET", args.iterator(), null);
+			c.call("DSET", args.iterator(), null);
 		}
 		callSync(c, "PING", null);
 		System.out.println("populateMap " + (its*chunkLen) + ": " + (System.currentTimeMillis() - time));
@@ -571,7 +571,7 @@ public class Test {
 		bench(c, 1000000, "ECHO", asList(new BigInteger("92038492839048209384902834902839048209384902834902830948230948092384902839408239048920384902834902834")));
 		//bench(c, 1000000, "ECHO", asList(asList(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
 		//bench(c, 1000000, "INCR", asList("i1"));
-		//bench(c, 1000000, "LPUSHT", asList("L1", 0));
+		//bench(c, 1000000, "RPUSH", asList("L1", 0));
 	}
 
 	public static void main(String[] args) {
@@ -681,9 +681,9 @@ public class Test {
 			b.runCommand("PING", null, ops, pipeline);
 			b.runCommand("INCR", asList("i1"), ops, pipeline);
 			b.runCommand("LLEN", asList("l1"), ops, pipeline);
-			b.runCommand("LPUSHT", asList("l1", 1234567890), ops, pipeline);
-			b.runCommand("LPUSHT", asList("l1", "abc"), ops, pipeline);
-			b.runCommand("LPUSHT", asList("l1", "abc".getBytes()), ops, pipeline);
+			b.runCommand("RPUSH", asList("l1", 1234567890), ops, pipeline);
+			b.runCommand("RPUSH", asList("l1", "abc"), ops, pipeline);
+			b.runCommand("RPUSH", asList("l1", "abc".getBytes()), ops, pipeline);
 			b.runCommand("LRANGE", asList("l1", 0, 100), ops, pipeline);
 			b.runCommand("LRANGE", asList("l1", 0, 300), ops, pipeline);
 			b.runCommand("LRANGE", asList("l1", 0, 450), ops, pipeline);
