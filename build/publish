@@ -51,7 +51,7 @@ if [ "v$VERSION" != "$(git describe --exact-match --tags HEAD)" ]; then
 fi
 
 GHTAG="v$VERSION"
-GHRELID=$(curl -s -S "https://api.github.com/repos/$GHUSER/$GHREPO/releases/tags/$GHTAG" | jq ".id")
+GHRELID=$(curl -s -S -u "$GHUSER:$GHTOKEN" "https://api.github.com/repos/$GHUSER/$GHREPO/releases/tags/$GHTAG" | jq ".id")
 if [ "$GHRELID" = "null" ]; then
 	echo "creating github release $GHTAG"
 	GHRELID=$(curl -s -S -u "$GHUSER:$GHTOKEN" -X POST "https://api.github.com/repos/$GHUSER/$GHREPO/releases" -d "{\"tag_name\":\"$GHTAG\"}" | jq ".id")
