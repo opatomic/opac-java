@@ -191,6 +191,24 @@ public class Test {
 		}
 	}
 
+	public static final class UnsubscribeCallback implements CallbackSF<Object, OpaRpcError> {
+		private final Object mId;
+		private final OpaClient<Object,OpaRpcError> mClient;
+		UnsubscribeCallback(OpaClient<Object,OpaRpcError> c, Object id) {
+			mClient = c;
+			mId = id;
+		}
+		@Override
+		public void onSuccess(Object result) {
+			//System.out.println(stringify(result));
+			mClient.unregister(mId);
+		}
+		@Override
+		public void onFailure(OpaRpcError error) {
+			System.out.println("ERROR: " + error.toString());
+		}
+	}
+
 	private static final CallbackSF<Object, OpaRpcError> ECHOCB = new EchoCB();
 	static final CallbackSF<Object, OpaRpcError> ECHOERRCB = new EchoErrCB();
 
@@ -581,6 +599,17 @@ public class Test {
 		//bench(c, 1000000, "RPUSH", asList("L1", 0));
 	}
 
+	private static void testSubMany(OpaClient<Object,OpaRpcError> c, int count) {
+		List<Object> ids = new ArrayList<Object>(count);
+		for (int i = 0; i < count; ++i) {
+			ids.add(c.callAP("SUBSCRIBE", asIt("ch" + i), ECHOERRCB));
+		}
+		for (int i = 0; i < count; ++i) {
+			c.call("UNSUBSCRIBE", asIt("ch" + i), new UnsubscribeCallback(c, ids.get(i)));
+		}
+		callSync(c, "PING", null);
+	}
+
 	private static SSLContext trustAllContext() throws KeyManagementException, NoSuchAlgorithmException {
 		SSLContext c = SSLContext.getInstance("TLS");
 
@@ -669,6 +698,8 @@ public class Test {
 			c.call("PUBLISH", asIt("ch1", "msg1"), null);
 			c.call("PUBLISH", asIt("ch1", "msg2"), null);
 			c.callA("UNSUBSCRIBE", asIt("ch1"), new UnsubscribeCB<Object,OpaRpcError>(c, ch1ID, ECHOCB));
+
+			testSubMany(c, 100000);
 
 			c.call("PING", null, ECHOCB);
 			/*
