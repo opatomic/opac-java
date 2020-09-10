@@ -127,6 +127,7 @@ class Benchmark {
 
 	private ClientRunner mClients[];
 
+	/*
 	void connect(String host, int port, int numClients) throws IOException {
 		mClients = new ClientRunner[numClients];
 		for (int i = 0; i < numClients; ++i) {
@@ -139,6 +140,7 @@ class Benchmark {
 			mClients[i] = new ClientRunner(c);
 		}
 	}
+	*/
 
 	void runCommand(String cmd, Iterable<Object> args, int its, int pipeline) {
 		Runnable donecb = new Runnable() {
