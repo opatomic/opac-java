@@ -4,8 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,6 +14,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 
 
@@ -574,6 +579,26 @@ public class Test {
 		//bench(c, 1000000, "RPUSH", asList("L1", 0));
 	}
 
+	private static SSLContext trustAllContext() throws KeyManagementException, NoSuchAlgorithmException {
+		SSLContext c = SSLContext.getInstance("TLS");
+
+		// Create a trust manager that does not validate certificate chains
+		TrustManager[] trustAllCerts = new TrustManager[] {
+				new X509TrustManager() {
+					public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+						return new java.security.cert.X509Certificate[] {};
+					}
+					public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+					public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+				}
+		};
+
+		c.init(null, trustAllCerts, null);
+
+		return c;
+	}
+
+	@SuppressWarnings("resource")
 	public static void main(String[] args) {
 		try {
 
@@ -585,6 +610,10 @@ public class Test {
 			testCloseFromSerializerException(host, port);
 
 			Socket s = new Socket(host, port);
+			if (!s.getInetAddress().isLoopbackAddress()) {
+				// TODO: handle --cacert ca.crt, --sni opad, etc on command line and validate server identity?
+				s = trustAllContext().getSocketFactory().createSocket(s, host, port, true);
+			}
 			s.setTcpNoDelay(true);
 
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
