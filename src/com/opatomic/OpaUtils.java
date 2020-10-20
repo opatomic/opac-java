@@ -185,11 +185,13 @@ public class OpaUtils {
 	private static final int T_NULL      = 0x02;
 	private static final int T_FALSE     = 0x03;
 	private static final int T_TRUE      = 0x04;
-	private static final int T_NUMBER    = 0x05;
-	private static final int T_BIN       = 0x06;
-	private static final int T_STRING    = 0x07;
-	private static final int T_ARRAY     = 0x08;
-	private static final int T_SORTMAX   = 0x09;
+	private static final int T_NEGINF    = 0x05;
+	private static final int T_NUMBER    = 0x06;
+	private static final int T_POSINF    = 0x07;
+	private static final int T_BIN       = 0x08;
+	private static final int T_STRING    = 0x09;
+	private static final int T_ARRAY     = 0x0A;
+	private static final int T_SORTMAX   = 0x0B;
 
 	private static int getType(Object o) {
 		// TODO: map class to type rather than if/else + instanceof?
@@ -214,15 +216,19 @@ public class OpaUtils {
 		} else if (o instanceof Double) {
 			//if (!Double.isFinite(((Double)o).doubleValue())) {
 			Double v = (Double) o;
-			if (v.isInfinite() || v.isNaN()) {
-				throw new IllegalArgumentException("value is not finite");
+			if (v.isInfinite()) {
+				return v.doubleValue() == Double.NEGATIVE_INFINITY ? T_NEGINF : T_POSINF;
+			} else if (v.isNaN()) {
+				throw new IllegalArgumentException("value is NaN");
 			}
 			return T_NUMBER;
 		} else if (o instanceof Float) {
 			//if (!Float.isFinite(((Float)o).floatValue())) {
 			Float v = (Float) o;
-			if (v.isInfinite() || v.isNaN()) {
-				throw new IllegalArgumentException("value is not finite");
+			if (v.isInfinite()) {
+				return v.floatValue() == Float.NEGATIVE_INFINITY ? T_NEGINF : T_POSINF;
+			} else if (v.isNaN()) {
+				throw new IllegalArgumentException("value is NaN");
 			}
 			return T_NUMBER;
 		} else if (o instanceof Byte || o instanceof Short || o instanceof BigInteger || o instanceof BigDecimal) {
@@ -242,6 +248,8 @@ public class OpaUtils {
 			case T_NULL:
 			case T_FALSE:
 			case T_TRUE:
+			case T_NEGINF:
+			case T_POSINF:
 			case T_SORTMAX:
 				return 0;
 			case T_NUMBER:
@@ -285,8 +293,16 @@ public class OpaUtils {
 			return (BigDecimal) o;
 		} else if (o instanceof BigInteger) {
 			return new BigDecimal((BigInteger) o);
-		} else if (o instanceof Float || o instanceof Double) {
-			return BigDecimal.valueOf(((Number)o).doubleValue());
+		} else if (o instanceof Float) {
+			Float v = (Float) o;
+			if (!(v.isInfinite() || v.isNaN())) {
+				return BigDecimal.valueOf(v.doubleValue());
+			}
+		} else if (o instanceof Double) {
+			Double v = (Double) o;
+			if (!(v.isInfinite() || v.isNaN())) {
+				return BigDecimal.valueOf(v.doubleValue());
+			}
 		}
 		//throw new RuntimeException("Unsupported type: " + o.getClass().toString());
 		return null;

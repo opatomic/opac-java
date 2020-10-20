@@ -150,6 +150,8 @@ public class OpaPartialParser {
 						case OpaDef.C_FALSE:      hitNext(Boolean.FALSE);        continue;
 						case OpaDef.C_TRUE:       hitNext(Boolean.TRUE);         continue;
 						case OpaDef.C_ZERO:       hitNext(OpaDef.ZeroObj);       continue;
+						case OpaDef.C_NEGINF:     hitNext(OpaDef.NegInfObj);     continue;
+						case OpaDef.C_POSINF:     hitNext(OpaDef.PosInfObj);     continue;
 						case OpaDef.C_EMPTYBIN:   hitNext(OpaDef.EmptyBinObj);   continue;
 						case OpaDef.C_EMPTYSTR:   hitNext(OpaDef.EmptyStrObj);   continue;
 						case OpaDef.C_EMPTYARRAY: hitNext(OpaDef.EmptyArrayObj); continue;

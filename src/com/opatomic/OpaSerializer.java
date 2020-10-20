@@ -267,12 +267,22 @@ public final class OpaSerializer extends OutputStream {
 		} else if (o == OpaDef.UndefinedObj) {
 			write(OpaDef.C_UNDEFINED);
 		} else if (o instanceof Float) {
-			// TODO: use BigDecimal() constructor? or BigDecimal.valueOf()??
-			//writeBigDec(new BigDecimal(((Float)o).doubleValue()));
-			writeBigDec(BigDecimal.valueOf(((Float)o).doubleValue()));
+			Float v = (Float) o;
+			if (v.isInfinite()) {
+				write(v.floatValue() == Float.NEGATIVE_INFINITY ? OpaDef.C_NEGINF : OpaDef.C_POSINF);
+			} else {
+				// TODO: use BigDecimal() constructor? or BigDecimal.valueOf()??
+				//writeBigDec(new BigDecimal(((Float)o).doubleValue()));
+				writeBigDec(BigDecimal.valueOf(v.doubleValue()));
+			}
 		} else if (o instanceof Double) {
-			// TODO: use BigDecimal() constructor? or BigDecimal.valueOf()??
-			writeBigDec(BigDecimal.valueOf(((Double)o).doubleValue()));
+			Double v = (Double) o;
+			if (v.isInfinite()) {
+				write(v.doubleValue() == Double.NEGATIVE_INFINITY ? OpaDef.C_NEGINF : OpaDef.C_POSINF);
+			} else {
+				// TODO: use BigDecimal() constructor? or BigDecimal.valueOf()??
+				writeBigDec(BigDecimal.valueOf(v.doubleValue()));
+			}
 		} else if (o instanceof Short) {
 			writeLong(((Short)o).intValue());
 		} else if (o instanceof Byte) {

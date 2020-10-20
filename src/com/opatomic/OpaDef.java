@@ -21,6 +21,8 @@ public class OpaDef {
 	public static final byte C_FALSE        = 'F';
 	public static final byte C_TRUE         = 'T';
 	public static final byte C_ZERO         = 'O';
+	public static final byte C_NEGINF       = 'P';
+	public static final byte C_POSINF       = 'Q';
 	public static final byte C_EMPTYBIN     = 'A';
 	public static final byte C_EMPTYSTR     = 'R';
 	public static final byte C_EMPTYARRAY   = 'M';
@@ -67,6 +69,8 @@ public class OpaDef {
 	//};
 
 	public static final Long ZeroObj       = Long.valueOf(0);
+	public static final Double NegInfObj   = Double.valueOf(Double.NEGATIVE_INFINITY);
+	public static final Double PosInfObj   = Double.valueOf(Double.POSITIVE_INFINITY);
 	public static final byte[] EmptyBinObj = new byte[0];
 	public static final String EmptyStrObj = "";
 	public static final List<Object> EmptyArrayObj = Collections.emptyList();
