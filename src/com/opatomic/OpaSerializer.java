@@ -188,7 +188,7 @@ public final class OpaSerializer extends OutputStream {
 		}
 	}
 
-	public void writeString(String s) throws IOException {
+	public void writeString(CharSequence s) throws IOException {
 		int slen = s.length();
 		if (slen == 0) {
 			write(OpaDef.C_EMPTYSTR);
@@ -232,8 +232,8 @@ public final class OpaSerializer extends OutputStream {
 	public void writeObject(Object o) throws IOException {
 		if (o == null) {
 			write(OpaDef.C_NULL);
-		} else if (o instanceof String) {
-			writeString((String) o);
+		} else if (o instanceof CharSequence) {
+			writeString((CharSequence) o);
 		} else if (o instanceof OpaSerializable) {
 			((OpaSerializable)o).writeOpaSO(this);
 		} else if (o instanceof Integer) {
