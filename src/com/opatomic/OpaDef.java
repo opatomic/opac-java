@@ -6,7 +6,6 @@
 package com.opatomic;
 
 import java.util.Collections;
-import java.util.List;
 
 public class OpaDef {
 	static final boolean DEBUG = true;
