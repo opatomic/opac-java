@@ -24,8 +24,8 @@ public interface OpaClient {
 
 	/**
 	 * Run specified command on server with an auto-generated asynchronous id. Specified callback
-	 * is invoked once, when response received. Response can arrive out of order. Command must respond
-	 * only 1 time... do not use this for SUBSCRIBE (use callID() instead).
+	 * is invoked once, when response is received. Response can arrive out of order. Command must respond
+	 * only 1 time.
 	 * @param cmd  Command to run
 	 * @param args Command's parameters. Do not modify
 	 * @param cb   Callback to invoke when response is received. Cannot be null.
