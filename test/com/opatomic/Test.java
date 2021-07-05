@@ -87,11 +87,11 @@ class Benchmark {
 	}
 
 	private static final class ClientRunner {
-		private final OpaClient<Object,OpaRpcError> mClient;
+		private final OpaClient mClient;
 		private State mState;
 		private int mCurrBatch;
 
-		ClientRunner(OpaClient<Object,OpaRpcError> c) {
+		ClientRunner(OpaClient c) {
 			mClient = c;
 		}
 
@@ -191,24 +191,6 @@ public class Test {
 		}
 	}
 
-	public static final class UnsubscribeCallback implements CallbackSF<Object, OpaRpcError> {
-		private final Object mId;
-		private final OpaClient<Object,OpaRpcError> mClient;
-		UnsubscribeCallback(OpaClient<Object,OpaRpcError> c, Object id) {
-			mClient = c;
-			mId = id;
-		}
-		@Override
-		public void onSuccess(Object result) {
-			//System.out.println(stringify(result));
-			mClient.unregister(mId);
-		}
-		@Override
-		public void onFailure(OpaRpcError error) {
-			System.out.println("ERROR: " + error.toString());
-		}
-	}
-
 	private static final CallbackSF<Object, OpaRpcError> ECHOCB = new EchoCB();
 	static final CallbackSF<Object, OpaRpcError> ECHOERRCB = new EchoErrCB();
 
@@ -217,7 +199,7 @@ public class Test {
 
 
 
-	private static Object callSync(OpaClient<Object,OpaRpcError> c, String cmd, Iterator<Object> args) {
+	private static Object callSync(OpaClient c, String cmd, Iterator<Object> args) {
 		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		c.call(cmd, args, wcb);
 		try {
@@ -385,7 +367,7 @@ public class Test {
 
 	}
 
-	private static long bench2(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
+	private static long bench2(OpaClient c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
 		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		long time = System.currentTimeMillis();
 		for (--its; its > 0; --its) {
@@ -400,54 +382,21 @@ public class Test {
 		return System.currentTimeMillis() - time;
 	}
 
-	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
+	private static void bench(OpaClient c, int its, String command, Iterable<Object> args, boolean async) throws InterruptedException {
 		for (int i = 0; i < 2; ++i) {
 			System.out.println(command + " time: " + bench2(c, its, command, args, async));
 		}
 	}
 
-	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command, Iterable<Object> args) throws InterruptedException {
+	private static void bench(OpaClient c, int its, String command, Iterable<Object> args) throws InterruptedException {
 		bench(c, its, command, args, false);
 	}
 
-	private static void bench(OpaClient<Object,OpaRpcError> c, int its, String command) throws InterruptedException {
+	private static void bench(OpaClient c, int its, String command) throws InterruptedException {
 		bench(c, its, command, null);
 	}
 
-	private static final class UnsubscribeCB<R,E> implements CallbackSF<R,E> {
-		private OpaClient<R,E> mClient;
-		private Object mId;
-		private CallbackSF<R,E> mWrappedCB;
-
-		public UnsubscribeCB(OpaClient<R,E> c, Object id, CallbackSF<R,E> cb) {
-			mClient = c;
-			mId = id;
-			mWrappedCB = cb;
-		}
-
-		@Override
-		public void onSuccess(R result) {
-			if (!mClient.unregister(mId) && OpaDef.DEBUG) {
-				OpaDef.log("persistent callback was not unregistered");
-			}
-			System.out.println("Unsubscribe success");
-			if (mWrappedCB != null) {
-				mWrappedCB.onSuccess(result);
-			}
-		}
-
-		@Override
-		public void onFailure(E error) {
-			if (OpaDef.DEBUG) {
-				OpaDef.log("unsubscribe failure: " + error.toString());
-			}
-			if (mWrappedCB != null) {
-				mWrappedCB.onFailure(error);
-			}
-		}
-	}
-
-	private static void check(OpaClient<Object,OpaRpcError> c, final Object expect, final String command, final Object... args) {
+	private static void check(OpaClient c, final Object expect, final String command, final Object... args) {
 		c.call(command, asIt(args), new CallbackSF<Object,OpaRpcError>() {
 			@Override
 			public void onSuccess(Object result) {
@@ -462,7 +411,7 @@ public class Test {
 		});
 	}
 
-	private static void createBigBlob(OpaClient<Object,OpaRpcError> c, int chunkLen, int numChunks) {
+	private static void createBigBlob(OpaClient c, int chunkLen, int numChunks) {
 		Object blen = callSync(c, "BLEN", asIt("bigblob"));
 
 		if (OpaUtils.compare(blen, chunkLen * numChunks) != 0) {
@@ -481,7 +430,7 @@ public class Test {
 		}
 	}
 
-	private static void populateMap(OpaClient<Object,OpaRpcError> c, String key, int its, int chunkLen) {
+	private static void populateMap(OpaClient c, String key, int its, int chunkLen) {
 		long time = System.currentTimeMillis();
 
 		for (int i = 0; i < its; ++i) {
@@ -500,7 +449,7 @@ public class Test {
 		System.out.println("populateMap " + (its*chunkLen) + ": " + (System.currentTimeMillis() - time));
 	}
 
-	private static void loadServerSend(OpaClient<Object,OpaRpcError> c, int its) {
+	private static void loadServerSend(OpaClient c, int its) {
 		createBigBlob(c, 1024, 10000);
 
 		long time = System.currentTimeMillis();
@@ -521,7 +470,7 @@ public class Test {
 	 * @param args  command arguments
 	 * @param its   number of times to run command
 	 */
-	private static void testSyncCalls(OpaClient<Object,OpaRpcError> c, String op, Iterable<Object> args, int its) {
+	private static void testSyncCalls(OpaClient c, String op, Iterable<Object> args, int its) {
 		long time = System.currentTimeMillis();
 
 		CallbackSF<Object,OpaRpcError> cb = new CallbackSF<Object,OpaRpcError>() {
@@ -583,7 +532,7 @@ public class Test {
 	// TODO: tester with many concurrent clients loading the db
 	// TODO: tests to validate the db's ops are implemented correctly
 
-	private static void bench(OpaClient<Object,OpaRpcError> c) throws InterruptedException {
+	private static void bench(OpaClient c) throws InterruptedException {
 		bench(c, 1000000, "PING");
 		bench(c, 1000000, "PING");
 		bench(c, 1000000, "PING", null, true);
@@ -601,15 +550,18 @@ public class Test {
 		//bench(c, 1000000, "RPUSH", asList("L1", 0));
 	}
 
-	private static void testSubMany(OpaClient<Object,OpaRpcError> c, int count) {
-		List<Object> ids = new ArrayList<Object>(count);
+	private static void testSubMany(OpaClient c, int count) {
+		c.registerCB("_pubsub", ECHOERRCB);
 		for (int i = 0; i < count; ++i) {
-			ids.add(c.callAP("SUBSCRIBE", asIt("ch" + i), ECHOERRCB));
+			c.call("SUBSCRIBE", asIt("ch" + i), ECHOERRCB);
 		}
 		for (int i = 0; i < count; ++i) {
-			c.call("UNSUBSCRIBE", asIt("ch" + i), new UnsubscribeCallback(c, ids.get(i)));
+			c.call("UNSUBSCRIBE", asIt("ch" + i), ECHOERRCB);
 		}
 		callSync(c, "PING", null);
+		c.call("ECHO", asIt("CHANNELS (on next line):"), ECHOCB);
+		c.call("PUBSUB", asIt("CHANNELS"), ECHOCB);
+		c.registerCB("_pubsub", null);
 	}
 
 	private static SSLContext trustAllContext() throws KeyManagementException, NoSuchAlgorithmException {
@@ -694,12 +646,15 @@ public class Test {
 			c.call("INCR", asIt("i2", new BigDecimal("123e-41")), ECHOCB);
 			c.call("INCR", asIt("i2", new BigDecimal("123e-41")), ECHOCB);
 
-			Object ch1ID = c.callAP("SUBSCRIBE", asIt("ch1"), ECHOCB);
-			c.callA("PUBSUB", asIt("SUBS"), ECHOCB);
-			c.callA("PUBSUB", asIt("CHANNELS", "WITHCOUNT"), ECHOCB);
-			c.call("PUBLISH", asIt("ch1", "msg1"), null);
-			c.call("PUBLISH", asIt("ch1", "msg2"), null);
-			c.callA("UNSUBSCRIBE", asIt("ch1"), new UnsubscribeCB<Object,OpaRpcError>(c, ch1ID, ECHOCB));
+			c.registerCB("_pubsub", ECHOCB);
+			c.call("SUBSCRIBE", asIt("ch1"), ECHOCB);
+			c.call("PUBSUB", asIt("NUMSUB", "ch1"), ECHOCB);
+			c.call("PUBSUB", asIt("CHANNELS"), ECHOCB);
+			c.call("PUBLISH", asIt("ch1", "msg1"), ECHOCB);
+			c.call("PUBLISH", asIt("ch1", "msg2"), ECHOCB);
+			c.call("UNSUBSCRIBE", asIt("ch1"), ECHOCB);
+			callSync(c, "PING", null);
+			c.registerCB("_pubsub", null);
 
 			testSubMany(c, 100000);
 

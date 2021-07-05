@@ -58,21 +58,24 @@ public class Example {
 			// the following commands will have errors
 			c.call("ECHO", asIt("Hello", "ExtraArg!"), echoResult);
 			c.call("BADCMD", asIt("Hello"), echoResult);
-			c.call("SUBSCRIBE", asIt("badsub; needs async cb id (use callAP() instead)"), echoResult);
 
-			final Object chid = c.callAP("SUBSCRIBE", asIt("channelName"), echoResult);
-			c.call("PUBLISH", asIt("channelName", "chan message"), null);
-			c.callA("UNSUBSCRIBE", asIt("channelName"), new CallbackSF<Object,OpaRpcError>() {
+			c.registerCB("_pubsub", echoResult);
+			c.call("SUBSCRIBE",  asIt("channelName", "channelName2", "channelName3", "channelName2"), echoResult);
+			c.call("PSUBSCRIBE", asIt("c*", "ch*", "n*", "*"), echoResult);
+			c.call("PUBLISH", asIt("channelName", "chan message"), echoResult);
+			c.call("PUNSUBSCRIBE", null, echoResult);
+			c.call("UNSUBSCRIBE",  asIt("channelName", "channelName2", "channelName3"), new CallbackSF<Object,OpaRpcError>() {
 				@Override
 				public void onSuccess(Object result) {
 					System.out.println("unsubscribed");
-					c.unregister(chid);
+					c.registerCB("_pubsub", null);
 				}
 				@Override
 				public void onFailure(OpaRpcError error) {
 					System.out.println("Error: could not unsubscribe; " + error.toString());
 				}
 			});
+			c.call("PUBLISH", asIt("channelName", "chan message"), echoResult);
 
 			c.call("QUIT", null, wcb.reset());
 			wcb.waitIfNotDone();

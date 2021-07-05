@@ -11,14 +11,14 @@ import java.util.Queue;
 
 class OpaClientRecvState {
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
-	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
+	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
 
 	private final OpaPartialParser.Buff mBuff = new OpaPartialParser.Buff();
 	private final OpaPartialParser mParser = new OpaPartialParser();
 
 	//private long mNumRecv;
 
-	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Long,CallbackSF<Object,OpaRpcError>> asynccbs) {
+	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Object,CallbackSF<Object,OpaRpcError>> asynccbs) {
 		mMainCallbacks = maincbs;
 		mAsyncCallbacks = asynccbs;
 	}
@@ -37,7 +37,7 @@ class OpaClientRecvState {
 			if (id instanceof Long) {
 				cb = ((Long)id).longValue() < 0 ? mAsyncCallbacks.get(id) : mAsyncCallbacks.remove(id);
 			} else {
-				cb = null;
+				cb = mAsyncCallbacks.get(id);
 			}
 			if (cb == null) {
 				// TODO: handle unknown asyncid with a callback
