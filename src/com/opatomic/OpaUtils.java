@@ -166,6 +166,10 @@ public class OpaUtils {
 		}
 	}
 
+	public static void stringify(Object o, CharSequence space, Appendable out) throws IOException {
+		stringify(o, space, 0, out);
+	}
+
 	public static String stringify(Object o, CharSequence space) {
 		StringBuilder sb = new StringBuilder();
 		try {
