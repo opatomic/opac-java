@@ -34,7 +34,7 @@ import com.opatomic.WaitCallbackSF;
 // note: this client is slow because YCSB is designed to run synchronously
 public class OpatomicAsyncClient extends DB {
 	private Socket mSocket;
-	private OpaClient<Object,OpaRpcError> mClient;
+	private OpaClient mClient;
 	private boolean mInsertStrict;
 	private OpaRpcError mError;
 
