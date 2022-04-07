@@ -19,11 +19,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 final class Request {
 	public final CharSequence command;
-	public final Iterator<Object> args;
+	public final Iterator<?> args;
 	public final Object asyncId;
 	public final CallbackSF<Object,OpaRpcError> cb;
 
-	Request(CharSequence command, Iterator<Object> args, Object asyncId, CallbackSF<Object,OpaRpcError> cb) {
+	Request(CharSequence command, Iterator<?> args, Object asyncId, CallbackSF<Object,OpaRpcError> cb) {
 		if (command == null) {
 			throw new IllegalArgumentException();
 		}
@@ -158,7 +158,7 @@ public class OpaStreamClient implements OpaClient {
 		}
 	}
 
-	static void writeRequest(OpaSerializer s, CharSequence cmd, Iterator<Object> args, Object id) throws IOException {
+	static void writeRequest(OpaSerializer s, CharSequence cmd, Iterator<?> args, Object id) throws IOException {
 		s.write(OpaDef.C_ARRAYSTART);
 		s.writeObject(id);
 		s.writeString(cmd);
@@ -211,7 +211,7 @@ public class OpaStreamClient implements OpaClient {
 		}
 	}
 
-	private void addRequest(CharSequence command, Iterator<Object> args, Object id, CallbackSF<Object,OpaRpcError> cb) {
+	private void addRequest(CharSequence command, Iterator<?> args, Object id, CallbackSF<Object,OpaRpcError> cb) {
 		mSerializeQueue.add(new Request(command, args, id, cb));
 	}
 
@@ -225,13 +225,13 @@ public class OpaStreamClient implements OpaClient {
 	}
 
 	@Override
-	public void call(CharSequence cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
+	public void call(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb) {
 		checkState();
 		addRequest(cmd, args, cb == null ? Boolean.FALSE : null, cb);
 	}
 
 	@Override
-	public void callA(CharSequence cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
+	public void callA(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
@@ -251,7 +251,7 @@ public class OpaStreamClient implements OpaClient {
 	}
 
 	@Override
-	public void callID(Object id, CharSequence cmd, Iterator<Object> args) {
+	public void callID(Object id, CharSequence cmd, Iterator<?> args) {
 		if (id == null) {
 			throw new IllegalArgumentException("id cannot be null");
 		}
@@ -267,7 +267,7 @@ public class OpaStreamClient implements OpaClient {
 	 * @param args Command's parameters. Do not modify
 	 * @param cb   Callback to invoke when response is received
 	 */
-	public void quit(CharSequence cmd, Iterator<Object> args, final CallbackSF<Object,OpaRpcError> cb) {
+	public void quit(CharSequence cmd, Iterator<?> args, final CallbackSF<Object,OpaRpcError> cb) {
 		checkState();
 		mQuitting = true;
 		addRequest(cmd, args, null, new CallbackSF<Object,OpaRpcError>() {

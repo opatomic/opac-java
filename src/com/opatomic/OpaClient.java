@@ -20,7 +20,7 @@ public interface OpaClient {
 	 * @param args Command's parameters. Do not modify
 	 * @param cb   Callback to invoke when response is received. If null then server will not send a response
 	 */
-	public void call(CharSequence cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb);
+	public void call(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb);
 
 	/**
 	 * Run specified command on server with an auto-generated asynchronous id. Specified callback
@@ -30,7 +30,7 @@ public interface OpaClient {
 	 * @param args Command's parameters. Do not modify
 	 * @param cb   Callback to invoke when response is received. Cannot be null.
 	 */
-	public void callA(CharSequence cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb);
+	public void callA(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb);
 
 	/**
 	 * Register a callback to an async id that can be used by callID().
@@ -47,6 +47,6 @@ public interface OpaClient {
 	 * @param cmd  Command to run
 	 * @param args Command's parameters. Do not modify
 	 */
-	public void callID(Object id, CharSequence cmd, Iterator<Object> args);
+	public void callID(Object id, CharSequence cmd, Iterator<?> args);
 
 }

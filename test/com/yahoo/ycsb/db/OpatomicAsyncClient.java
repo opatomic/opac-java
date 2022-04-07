@@ -89,7 +89,7 @@ public class OpatomicAsyncClient extends DB {
 		return wcb.result;
 	}
 
-	private Object callAndWait(String cmd, Iterator<Object> args) {
+	private Object callAndWait(String cmd, Iterator<?> args) {
 		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		mClient.call(cmd, args, wcb);
 		return waitForResult(wcb);

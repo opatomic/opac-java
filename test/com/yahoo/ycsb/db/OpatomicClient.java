@@ -60,7 +60,7 @@ final class OpaSyncClient {
 		mPBuff.data = new byte[buffLen];
 	}
 
-	private void sendRequest(String cmd, Iterator<Object> args) throws IOException {
+	private void sendRequest(String cmd, Iterator<?> args) throws IOException {
 		mSerializer.write(OpaDef.C_ARRAYSTART);
 		mSerializer.write(OpaDef.C_NULL);
 		mSerializer.writeString(cmd);
@@ -118,7 +118,7 @@ final class OpaSyncClient {
 		}
 	}
 
-	private Object callInternal(boolean throwOnErr, String cmd, Iterator<Object> args) {
+	private Object callInternal(boolean throwOnErr, String cmd, Iterator<?> args) {
 		try {
 			sendRequest(cmd, args);
 			if (mPipelineLen < 0) {
@@ -133,7 +133,7 @@ final class OpaSyncClient {
 		}
 	}
 
-	public Object call(String cmd, Iterator<Object> args) {
+	public Object call(String cmd, Iterator<?> args) {
 		return callInternal(true, cmd, args);
 	}
 
