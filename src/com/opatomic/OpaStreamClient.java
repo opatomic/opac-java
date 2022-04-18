@@ -136,7 +136,7 @@ public class OpaStreamClient implements OpaClient {
 		}
 	}
 
-	private static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Object,CallbackSF<Object,OpaRpcError>> asyncCBs) {
+	static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Object,CallbackSF<Object,OpaRpcError>> asyncCBs) {
 		// notify callbacks that conn is closed
 		while (true) {
 			CallbackSF<Object,OpaRpcError> cb = mainCBs.poll();
