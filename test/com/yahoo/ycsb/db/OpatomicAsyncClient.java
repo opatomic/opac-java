@@ -237,7 +237,7 @@ public class OpatomicAsyncClient extends DB {
 
 	@Override
 	public Status insert(String table, String key, Map<String,ByteIterator> values) {
-		// TODO: support batched insertion
+		// TODO: support batched insertion mode (return Status.BATCHED_OK)
 		int response = setall(key, values);
 		return (!mInsertStrict || response == values.size()) ? Status.OK : Status.ERROR;
 	}
