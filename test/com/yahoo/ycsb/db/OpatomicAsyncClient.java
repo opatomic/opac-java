@@ -36,6 +36,7 @@ public class OpatomicAsyncClient extends DB {
 	private Socket mSocket;
 	private OpaClient mClient;
 	private boolean mInsertStrict;
+	private boolean mUseDMGET = true;
 	private OpaRpcError mError;
 
 	@Override
@@ -117,43 +118,16 @@ public class OpatomicAsyncClient extends DB {
 
 	@Override
 	public Status read(String table, String key, Set<String> fields, final Map<String, ByteIterator> result) {
-		if (fields == null) {
-			Object r = callAndWait("DRANGE", asIt(key));
-			//if (r != null && r instanceof Iterable) {
-				Iterator<?> it = ((Iterable<?>) r).iterator();
-				while (it.hasNext()) {
-					Object k = it.next();
-					Object v = it.next();
-					result.put((String) k, new ByteArrayByteIterator((byte[]) v));
-				}
-			//}
-		} else {
-			final Iterator<String> it1 = fields.iterator();
-			CallbackSF<Object,OpaRpcError> cb = new CallbackSF<Object,OpaRpcError>() {
-				@Override
-				public void onFailure(OpaRpcError e) {
-					mError = e;
-				}
-				@Override
-				public void onSuccess(Object r) {
-					result.put(it1.next(), new ByteArrayByteIterator((byte[]) r));
-				}
-			};
-			if (fields.size() > 0) {
-				Iterator<String> it2 = fields.iterator();
-				for (int i = 0; i < fields.size() - 1; ++i) {
-					mClient.call("DGET", asIt(key, it2.next()), cb);
-				}
-				Object last = callAndWait("DGET", asIt(key, it2.next()));
-				result.put(it1.next(), new ByteArrayByteIterator((byte[]) last));
-			}
+		readFields(key, fields, true, result);
+		return mError != null || result.isEmpty() ? Status.ERROR : Status.OK;
+	}
 
-			if (mError != null) {
-				throw new RuntimeException(mError.toString());
-			}
+	private void resultAddAll(Iterator<?> it, Map<String, ByteIterator> result) {
+		while (it.hasNext()) {
+			Object k = it.next();
+			Object v = it.next();
+			result.put((String) k, new ByteArrayByteIterator((byte[]) v));
 		}
-
-		return result.isEmpty() ? Status.ERROR : Status.OK;
 	}
 
 	private final class ToMap implements CallbackSF<Object,OpaRpcError> {
@@ -174,27 +148,65 @@ public class OpatomicAsyncClient extends DB {
 		}
 	}
 
-	private void readFields(final String key, Set<String> fields, final Map<String, ByteIterator> result) {
+	private void addAllFromDMGET(List<String> args, Object r, final Map<String, ByteIterator> result) {
+		List<?> vals = (List<?>) r;
+		for (int i = 0; i < vals.size(); ++i) {
+			result.put(args.get(i + 1), new ByteArrayByteIterator((byte[]) vals.get(i)));
+		}
+	}
+
+	private void readFields(final String key, Set<String> fields, boolean wait, final Map<String, ByteIterator> result) {
 		if (fields == null || fields.size() == 0) {
-			mClient.call("DRANGE", asIt(key), new CallbackSF<Object,OpaRpcError>() {
-				@Override
-				public void onFailure(OpaRpcError err) {
-					mError = err;
-				}
-				@Override
-				public void onSuccess(Object r) {
-					Iterator<?> it = ((List<?>)r).iterator();
-					while (it.hasNext()) {
-						Object k = it.next();
-						Object v = it.next();
-						result.put((String)k, new ByteArrayByteIterator((byte[]) v));
+			if (wait) {
+				Object r = callAndWait("DRANGE", asIt(key));
+				resultAddAll(((Iterable<?>) r).iterator(), result);
+			} else {
+				mClient.call("DRANGE", asIt(key), new CallbackSF<Object,OpaRpcError>() {
+					@Override
+					public void onFailure(OpaRpcError err) {
+						mError = err;
 					}
-				}
-			});
+					@Override
+					public void onSuccess(Object r) {
+						resultAddAll(((Iterable<?>) r).iterator(), result);
+					}
+				});
+			}
 		} else {
-			ToMap cb = new ToMap(fields.iterator(), result);
-			for (Iterator<String> it = fields.iterator(); it.hasNext(); ) {
-				mClient.call("DGET", asIt(key, it.next()), cb);
+			if (mUseDMGET) {
+				List<String> args = new ArrayList<String>(1 + fields.size());
+				args.add(key);
+				args.addAll(fields);
+				if (wait) {
+					Object r = callAndWait("DMGET", args.iterator());
+					addAllFromDMGET(args, r, result);
+				} else {
+					mClient.call("DMGET", args.iterator(), new CallbackSF<Object,OpaRpcError>() {
+						@Override
+						public void onFailure(OpaRpcError err) {
+							mError = err;
+						}
+						@Override
+						public void onSuccess(Object r) {
+							addAllFromDMGET(args, r, result);
+						}
+					});
+				}
+			} else {
+				ToMap cb = new ToMap(fields.iterator(), result);
+				int count = fields.size();
+				if (wait && count > 0) {
+					--count;
+				}
+				Iterator<String> it = fields.iterator();
+				for (int i = 0; i < count; ++i) {
+					mClient.call("DGET", asIt(key, it.next()), cb);
+				}
+				if (wait && it.hasNext()) {
+					String lastField = it.next();
+					Object last = callAndWait("DGET", asIt(key, lastField));
+					result.put(lastField, new ByteArrayByteIterator((byte[]) last));
+				}
 			}
 		}
 	}
@@ -206,14 +218,13 @@ public class OpatomicAsyncClient extends DB {
 		WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
 		mClient.call("KEYS", asIt("START", startkey, "LIMIT", recordcount), wcb);
 		List<?> keys = (List<?>) waitForResult(wcb);
-		for (int i = 0; i < keys.size(); ++i) {
+		int sz = keys.size();
+		result.ensureCapacity(sz);
+		for (int i = 0; i < sz; ++i) {
 			HashMap<String,ByteIterator> record = new HashMap<String,ByteIterator>();
 			result.add(record);
-			readFields((String) keys.get(i), fields, record);
+			readFields((String) keys.get(i), fields, i == sz - 1, record);
 		}
-
-		mClient.call("PING", null, wcb.reset());
-		waitForResult(wcb);
 
 		return mError != null ? Status.ERROR : Status.OK;
 	}
