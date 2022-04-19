@@ -291,6 +291,7 @@ public class OpaStreamClient implements OpaClient {
 			}
 			@Override
 			public void onFailure(OpaRpcError error) {
+				mQuitting = false;
 				if (cb != null) {
 					cb.onFailure(error);
 				}
