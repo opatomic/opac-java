@@ -24,9 +24,6 @@ final class Request {
 	public final CallbackSF<Object,OpaRpcError> cb;
 
 	Request(CharSequence command, Iterator<?> args, Object asyncId, CallbackSF<Object,OpaRpcError> cb) {
-		if (command == null) {
-			throw new IllegalArgumentException();
-		}
 		this.command = command;
 		this.args = args;
 		this.asyncId = asyncId;
@@ -161,7 +158,11 @@ public class OpaStreamClient implements OpaClient {
 	static void writeRequest(OpaSerializer s, CharSequence cmd, Iterator<?> args, Object id) throws IOException {
 		s.write(OpaDef.C_ARRAYSTART);
 		s.writeObject(id);
-		s.writeString(cmd);
+		if (cmd == null) {
+			s.writeObject(cmd);
+		} else {
+			s.writeString(cmd);
+		}
 		if (args != null) {
 			while (args.hasNext()) {
 				s.writeObject(args.next());
@@ -174,7 +175,6 @@ public class OpaStreamClient implements OpaClient {
 		if (r.asyncId == null) {
 			mMainCallbacks.add(r.cb);
 		}
-
 		writeRequest(mSerializer, r.command, r.args, r.asyncId);
 	}
 
