@@ -59,11 +59,13 @@ public class OpaStreamClient implements OpaClient {
 
 	/**
 	 * Create a new client that will serialize requests to an OutputStream and parse responses from an InputStream.
-	 * @param in  Stream to parse responses
-	 * @param out Stream to serialize requests
+	 * @param in           Stream to parse responses
+	 * @param out          Stream to serialize requests
+	 * @param recvBuffLen  Size of the recv/parse buffer in bytes.
+	 * @param sendBuffLen  Size of the serializer buffer in bytes.
 	 */
-	public OpaStreamClient(final InputStream in, final OutputStream out) {
-		mSerializer = new OpaSerializer(out, 1024 * 8);
+	public OpaStreamClient(final InputStream in, final OutputStream out, int recvBuffLen, int sendBuffLen) {
+		mSerializer = new OpaSerializer(out, sendBuffLen);
 
 		// TODO: consider using java.util.concurrent.Executor for send? (recv will always be blocking or doing work)
 
@@ -105,7 +107,7 @@ public class OpaStreamClient implements OpaClient {
 		OpaUtils.startDaemonThread(new Runnable() {
 			public void run() {
 				try {
-					parseResponses(in, 1024 * 8);
+					parseResponses(in, recvBuffLen);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -115,6 +117,15 @@ public class OpaStreamClient implements OpaClient {
 				//OpaDef.log("closing recv thread");
 			}
 		}, "OpaStreamClient-recv");
+	}
+
+	/**
+	 * Create a new client that will serialize requests to an OutputStream and parse responses from an InputStream.
+	 * @param in  Stream to parse responses
+	 * @param out Stream to serialize requests
+	 */
+	public OpaStreamClient(final InputStream in, final OutputStream out) {
+		this(in, out, 1024 * 4, 1024 * 4);
 	}
 
 	private static void cleanupDeadRequests(BlockingQueue<Request> q) {
