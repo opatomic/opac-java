@@ -25,16 +25,13 @@ final class OpaNioSelector implements Runnable {
 
 	private Queue<Runnable> mWork = new LinkedBlockingQueue<Runnable>();
 
-	private long mSelectTimeout = 1000;
+	private long mSelectTimeout;
 	private int mMaxKeys = 5;
-	private boolean mClosed;
+	private boolean mClosed = false;
 
-	OpaNioSelector() {
-		try {
-			mSelector = Selector.open();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	OpaNioSelector(long timeoutMillis) throws IOException {
+		mSelectTimeout = timeoutMillis;
+		mSelector = Selector.open();
 	}
 
 	private void registerInternal(SelectableChannel sc, NioSelectionHandler h, int ops) {
@@ -112,15 +109,10 @@ final class OpaNioSelector implements Runnable {
 				if (mClosed) {
 					break;
 				}
-				sleep(100);
+				try {
+					Thread.sleep(100);
+				} catch (Exception e2) {}
 			}
 		}
-
-	}
-
-	private static void sleep(long millis) {
-		try {
-			Thread.sleep(millis);
-		} catch (InterruptedException e) {}
 	}
 }

@@ -5,6 +5,7 @@
 
 package com.opatomic;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketAddress;
@@ -16,159 +17,69 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-
-final class DaemonThreadFactory implements ThreadFactory {
-	public Thread newThread(Runnable arg0) {
-		Thread t = new Thread(arg0);
-		t.setDaemon(true);
-		return t;
-	}
-}
-
-final class NioToOioOutputStream extends OutputStream  {
+final class OpaNioBufferedOutputStream extends OutputStream {
 	private final OpaNioSelector mSelector;
 	private final SocketChannel mChannel;
 	private final OpaNioSelector.NioSelectionHandler mHandler;
+	private final ByteArrayOutputStream mBuff = new ByteArrayOutputStream();
 	private boolean mWritable = false;
 
-	NioToOioOutputStream(OpaNioSelector s, SocketChannel ch, OpaNioSelector.NioSelectionHandler h) {
+	OpaNioBufferedOutputStream(OpaNioSelector s, SocketChannel ch, OpaNioSelector.NioSelectionHandler h) {
 		mSelector = s;
 		mChannel = ch;
 		mHandler = h;
 	}
 
-	private void waitUntilWritable() {
-		while (!mWritable) {
-			try {
-				wait(0);
-			} catch (InterruptedException e) {}
-		}
+	public boolean isWritable() {
+		return mWritable;
 	}
 
-	public synchronized void setWritable() {
+	public synchronized void onWritable() throws IOException {
 		mWritable = true;
-		notifyAll();
+		byte[] bytesToWrite = mBuff.toByteArray();
+		mBuff.reset();
+		write(bytesToWrite);
 	}
 
 	@Override
 	public synchronized void write(byte[] buff, int off, int len) throws IOException {
-		while (len > 0) {
-			waitUntilWritable();
-			int numWritten = mChannel.write(ByteBuffer.wrap(buff, off, len));
-			off += numWritten;
-			len -= numWritten;
-			if (numWritten == 0) {
-				mWritable = false;
-				mSelector.register(mChannel, mHandler, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+		if (mWritable) {
+			while (len > 0) {
+				int numWritten = mChannel.write(ByteBuffer.wrap(buff, off, len));
+				off += numWritten;
+				len -= numWritten;
+				if (numWritten == 0) {
+					// cannot write anymore
+					mWritable = false;
+					// register to know when channel is writable
+					mSelector.register(mChannel, mHandler, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+					// buffer writes into memory
+					mBuff.write(buff, off, len);
+					return;
+				}
 			}
+		} else {
+			mBuff.write(buff, off, len);
 		}
 	}
 
 	@Override
-	public void write(int v) throws IOException {
+	public void write(byte[] buff) throws IOException {
+		write(buff, 0, buff.length);
+	}
+
+	@Override
+	public void write(int arg0) throws IOException {
 		// writing 1 byte at a time is inefficient!
 		throw new UnsupportedOperationException();
 	}
 }
 
-class RequestSerializer {
-	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
-	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
-
-	private final Queue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
-	private final OpaSerializer mSerializer;
-	private final AtomicInteger mRequestQLen = new AtomicInteger(-2);
-
-	private final ExecutorService mExSvc;
-	private final Runnable mRunSerialize = new Runnable() {
-		@Override
-		public void run() {
-			try {
-				serializeRequests();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	};
-
-	RequestSerializer(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Long,CallbackSF<Object,OpaRpcError>> asynccbs, ExecutorService exsvc, OutputStream out, int buffLen) {
-		mMainCallbacks = maincbs;
-		mAsyncCallbacks = asynccbs;
-		mExSvc = exsvc;
-		mSerializer = new OpaSerializer(out, buffLen);
-	}
-
-	private void sendRequest(Request r) throws IOException {
-		if (r.cb != null) {
-			if (r.id == 0) {
-				mMainCallbacks.add(r.cb);
-			} else if (r.id > 0) {
-				// note: if id is < 0 then cb was already added to mAsyncCallbacks
-				mAsyncCallbacks.put(r.id, r.cb);
-			}
-		}
-
-		// TODO: design a serializer that can pause at any point if a write would block
-		OpaStreamClient.writeRequest(mSerializer, r.command, r.args, r.id, r.cb == null);
-	}
-
-	private void serializeRequests() throws IOException {
-		while (true) {
-			Request r;
-			while (true) {
-				if ((r = mSerializeQueue.poll()) != null) {
-					break;
-				}
-				Thread.yield();
-			}
-			sendRequest(r);
-
-			int len = mRequestQLen.decrementAndGet();
-			if (len < 0) {
-				mSerializer.flush();
-				len = mRequestQLen.decrementAndGet();
-				if (len == -2) {
-					return;
-				}
-				mRequestQLen.incrementAndGet();
-			}
-		}
-	}
-
-	void sendRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
-		int len = mRequestQLen.getAndIncrement();
-		mSerializeQueue.add(new Request(command, args, id, cb));
-		if (len == -2) {
-			mRequestQLen.getAndIncrement();
-			mExSvc.execute(mRunSerialize);
-		}
-	}
-}
-
-public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
+public class OpaNioClient implements OpaClient {
 	private static final int RECVREADITS = 1;
-	private static final int RECVBUFFLEN = 1024 * 8;
-	private static final int SENDBUFFLEN = 1024 * 8;
-
-	private static final OpaNioSelector SELECTOR = new OpaNioSelector();
-	private static final ByteBuffer RECVBUF = ByteBuffer.allocate(RECVBUFFLEN);
-
-	// note: this executor service should be configurable! core thread, max threads, thread idle timeout
-	static final ExecutorService EXSVC = new ThreadPoolExecutor(4, 4, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new DaemonThreadFactory());
-
-	static {
-		OpaUtils.startDaemonThread(SELECTOR, "OpatomicNioSelector");
-	}
-
 
 	private final OpaNioSelector.NioSelectionHandler mHandler = new OpaNioSelector.NioSelectionHandler() {
 		@Override
@@ -178,82 +89,171 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 				for (int i = 0; i < RECVREADITS; ++i) {
 					int numRead;
 					try {
-						numRead = sc.read(RECVBUF);
+						numRead = sc.read(mRecvBuff);
 					} catch (Exception e) {
 						numRead = -1;
 					}
 					if (numRead <= 0) {
 						if (numRead < 0) {
-							selch.close();
-							// call setWritable() in case writer thread is waiting
-							mOut.setWritable();
+							close();
 							return;
 						}
 						break;
 					}
-					mRecvState.onRecv(RECVBUF.array(), RECVBUF.arrayOffset(), numRead);
-					RECVBUF.clear();
+					mRecvState.onRecv(mRecvBuff.array(), mRecvBuff.arrayOffset(), numRead);
+					mRecvBuff.clear();
 				}
 			}
 			if ((readyOps & SelectionKey.OP_WRITE) != 0) {
-				SELECTOR.register(selch, this, SelectionKey.OP_READ);
-				mOut.setWritable();
+				mSelector.register(selch, this, SelectionKey.OP_READ);
+				onWritable();
 			}
 			if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
 				sc.finishConnect();
-				mOut.setWritable();
 			}
 		}
 	};
 
 	private final AtomicLong mCurrId = new AtomicLong();
-	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new LinkedBlockingQueue<CallbackSF<Object,OpaRpcError>>();
-	private final Map<Long,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Long,CallbackSF<Object,OpaRpcError>>();
+	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
+	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
 	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
-	private final NioToOioOutputStream mOut;
-	private final RequestSerializer mReqSer;
+	private final ByteBuffer mRecvBuff;
+	private final OpaNioSelector mSelector;
+	private final SocketChannel mChan;
 
-	OpaNioClient(SocketChannel ch) {
-		mOut = new NioToOioOutputStream(SELECTOR, ch, mHandler);
-		mReqSer = new RequestSerializer(mMainCallbacks, mAsyncCallbacks, EXSVC, mOut, SENDBUFFLEN);
-		SELECTOR.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_CONNECT);
+	private final OpaNioBufferedOutputStream mOut;
+	private final OpaSerializer mSerializer;
+	private final Queue<Request> mSerializeQueue = new ConcurrentLinkedQueue<Request>();
+	private boolean mUseQueue = false;
+	private boolean mAutoFlush = true;
+
+	OpaNioClient(SocketChannel ch, OpaNioSelector sel, int recvBuffLen, int sendBuffLen) {
+		mRecvBuff = ByteBuffer.allocate(recvBuffLen);
+		mOut = new OpaNioBufferedOutputStream(sel, ch, mHandler);
+		mSerializer = new OpaSerializer(mOut, sendBuffLen);
+		mSelector = sel;
+		mChan = ch;
+		sel.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);
 	}
 
-	private void addRequest(String command, Iterator<Object> args, long id, CallbackSF<Object,OpaRpcError> cb) {
-		mReqSer.sendRequest(command, args, id, cb);
+	public synchronized void close() {
+		try {
+			mChan.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		}
+		OpaStreamClient.respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
 	}
 
-	// TODO: must handle unexpected connection closing. threads might be waiting on response - need to invoke failure callback
-	// TODO: call methods should check whether client is closed (before adding to serialize queue); if so then throw exception!
+	public boolean setAutoFlush(boolean onOrOff) {
+		boolean prevVal = mAutoFlush;
+		mAutoFlush = onOrOff;
+		return prevVal;
+	}
+
+	private void flushInternal() throws IOException {
+		if (mOut.isWritable()) {
+			mSerializer.flush();
+		}
+		if (!mOut.isWritable()) {
+			mUseQueue = true;
+		}
+	}
+
+	public synchronized void flush() {
+		try {
+			flushInternal();
+		} catch (Exception e) {
+			close();
+		}
+	}
+
+	private synchronized void onWritable() {
+		try {
+			mOut.onWritable();
+			while (mOut.isWritable()) {
+				Request r = mSerializeQueue.poll();
+				if (r == null) {
+					// queue has been drained
+					mSerializer.flush();
+					if (mOut.isWritable()) {
+						mUseQueue = false;
+					}
+					break;
+				}
+				OpaStreamClient.writeRequest(mSerializer, r.command, r.args, r.asyncId);
+			}
+		} catch (Exception e) {
+			close();
+		}
+	}
+
+	private synchronized void addRequest(CharSequence command, Iterator<?> args, Object id, CallbackSF<Object,OpaRpcError> cb) {
+		try {
+			if (id == null) {
+				mMainCallbacks.add(cb);
+			}
+			if (mUseQueue) {
+				mSerializeQueue.add(new Request(command, args, id, cb));
+			} else {
+				OpaStreamClient.writeRequest(mSerializer, command, args, id);
+				if (mAutoFlush) {
+					flushInternal();
+				}
+			}
+		} catch (Exception e) {
+			close();
+		}
+	}
 
 	@Override
-	public void call(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
-		addRequest(cmd, args, 0, cb);
+	public void call(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb) {
+		addRequest(cmd, args, cb == null ? Boolean.FALSE : null, cb);
 	}
 
 	@Override
-	public void callA(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
+	public void callA(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb) {
 		if (cb == null) {
 			throw new IllegalArgumentException("callback cannot be null");
 		}
-		addRequest(cmd, args, mCurrId.incrementAndGet(), cb);
-	}
-
-	@Override
-	public Object callAP(String cmd, Iterator<Object> args, CallbackSF<Object,OpaRpcError> cb) {
-		if (cb == null) {
-			throw new IllegalArgumentException("callback cannot be null");
-		}
-		Long id = Long.valueOf(0 - mCurrId.incrementAndGet());
+		Long id = mCurrId.incrementAndGet();
 		mAsyncCallbacks.put(id, cb);
-		// TODO: if this fails (throws exception) then must remove persistent id
-		addRequest(cmd, args, id.longValue(), null);
-		return id;
+		addRequest(cmd, args, id, cb);
 	}
 
 	@Override
-	public boolean unregister(Object id) {
-		return mAsyncCallbacks.remove(id) == null ? false : true;
+	public CallbackSF<Object, OpaRpcError> registerCB(Object id, CallbackSF<Object, OpaRpcError> cb) {
+		if (cb == null) {
+			return mAsyncCallbacks.remove(id);
+		} else {
+			return mAsyncCallbacks.put(id, cb);
+		}
+	}
+
+	@Override
+	public void callID(Object id, CharSequence cmd, Iterator<?> args) {
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		addRequest(cmd, args, id, null);
+	}
+
+
+
+
+	private static final Object LOCK = new Object();
+	private static OpaNioSelector SELECTOR;
+	private static Thread SELECTOR_THREAD = null;
+
+	private static void startService() throws IOException {
+		synchronized (LOCK) {
+			if (SELECTOR_THREAD == null || !SELECTOR_THREAD.isAlive()) {
+				SELECTOR = new OpaNioSelector(1000);
+				SELECTOR_THREAD = OpaUtils.startDaemonThread(SELECTOR, "OpaNioSelector");
+			}
+		}
 	}
 
 	/**
@@ -262,10 +262,14 @@ public class OpaNioClient implements OpaClient<Object,OpaRpcError> {
 	 * @return new client
 	 * @throws IOException
 	 */
-	public static OpaNioClient connect(SocketAddress addr) throws IOException {
+	public static OpaNioClient connect(SocketAddress addr, int timeoutMillis) throws IOException {
+		startService();
 		SocketChannel sc = SocketChannel.open();
+		sc.configureBlocking(true);
+		sc.socket().connect(addr, timeoutMillis);
 		sc.configureBlocking(false);
-		sc.connect(addr);
-		return new OpaNioClient(sc);
+		sc.socket().setTcpNoDelay(true);
+		//sc.socket().setSendBufferSize(1024);
+		return new OpaNioClient(sc, SELECTOR, 1024 * 4, 1024 * 4);
 	}
 }
