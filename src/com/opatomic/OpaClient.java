@@ -33,7 +33,8 @@ public interface OpaClient {
 	public void callA(CharSequence cmd, Iterator<?> args, CallbackSF<Object,OpaRpcError> cb);
 
 	/**
-	 * Register a callback to an async id that can be used by callID().
+	 * Register a callback to an async id that can be used by callID(). Unless otherwise specified in
+	 * implementation, id should not be a number because numeric-ids are often used by callA().
 	 * @param id  Async id
 	 * @param cb  Callback to invoke when each response is received. Use null to remove registered callback
 	 * @return    Previously registered callback for the specified async id.
@@ -42,7 +43,7 @@ public interface OpaClient {
 
 	/**
 	 * Run specified command on the server with a specified async id. Any responses to the command
-	 * will invoke the callback that was given as a parameter to register().
+	 * will invoke the callback that was given as a parameter to registerCB().
 	 * @param id   Async id
 	 * @param cmd  Command to run
 	 * @param args Command's parameters. Do not modify
