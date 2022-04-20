@@ -117,7 +117,7 @@ public class OpaNioClient implements OpaClient {
 	private final AtomicLong mCurrId = new AtomicLong();
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
-	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
+	private final OpaClientRecvState mRecvState;
 	private final ByteBuffer mRecvBuff;
 	private final OpaNioSelector mSelector;
 	private final SocketChannel mChan;
@@ -128,10 +128,11 @@ public class OpaNioClient implements OpaClient {
 	private boolean mUseQueue = false;
 	private boolean mAutoFlush = true;
 
-	OpaNioClient(SocketChannel ch, OpaNioSelector sel, int recvBuffLen, int sendBuffLen) {
-		mRecvBuff = ByteBuffer.allocate(recvBuffLen);
+	OpaNioClient(SocketChannel ch, OpaNioSelector sel, OpaClientConfig cfg) {
+		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		mRecvBuff = ByteBuffer.allocate(cfg.recvBuffLen);
 		mOut = new OpaNioBufferedOutputStream(sel, ch, mHandler);
-		mSerializer = new OpaSerializer(mOut, sendBuffLen);
+		mSerializer = new OpaSerializer(mOut, cfg.sendBuffLen);
 		mSelector = sel;
 		mChan = ch;
 		sel.register(ch, mHandler, SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);
@@ -260,10 +261,11 @@ public class OpaNioClient implements OpaClient {
 	 * Create a new client and connect to the specified address (blocks until connect is complete or timeout occurs).
 	 * @param addr          Address of Opatomic server
 	 * @param timeoutMillis The maximum time to wait in milliseconds
+	 * @param cfg           Client options
 	 * @return new client
 	 * @throws IOException
 	 */
-	public static OpaNioClient connect(SocketAddress addr, int timeoutMillis) throws IOException {
+	public static OpaNioClient connect(SocketAddress addr, int timeoutMillis, OpaClientConfig cfg) throws IOException {
 		startService();
 		SocketChannel sc = SocketChannel.open();
 		sc.configureBlocking(true);
@@ -271,6 +273,6 @@ public class OpaNioClient implements OpaClient {
 		sc.configureBlocking(false);
 		sc.socket().setTcpNoDelay(true);
 		//sc.socket().setSendBufferSize(1024);
-		return new OpaNioClient(sc, SELECTOR, 1024 * 4, 1024 * 4);
+		return new OpaNioClient(sc, SELECTOR, cfg);
 	}
 }

@@ -37,7 +37,8 @@ final class Request {
 }
 
 /**
- * Opatomic client that uses 2 threads: 1 for parser and 1 for serializer. Methods do not block.
+ * Opatomic client that uses 2 threads: 1 for parser and 1 for serializer. Methods do not block (unless the
+ * OpaClientConfig specifies a max sendQueueLen - then callers may block until the send queue has reduced in size).
  * Cannot modify args until callback is invoked (because requests are serialized in separate thread).
  */
 public class OpaStreamClient implements OpaClient {
@@ -48,7 +49,7 @@ public class OpaStreamClient implements OpaClient {
 	private final AtomicLong mCurrId = new AtomicLong();
 
 	private final OpaSerializer mSerializer;
-	private final BlockingQueue<Request> mSerializeQueue = new LinkedBlockingQueue<Request>();
+	private final BlockingQueue<Request> mSerializeQueue;
 
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
@@ -59,13 +60,13 @@ public class OpaStreamClient implements OpaClient {
 
 	/**
 	 * Create a new client that will serialize requests to an OutputStream and parse responses from an InputStream.
-	 * @param in           Stream to parse responses
-	 * @param out          Stream to serialize requests
-	 * @param recvBuffLen  Size of the recv/parse buffer in bytes.
-	 * @param sendBuffLen  Size of the serializer buffer in bytes.
+	 * @param in   Stream to parse responses
+	 * @param out  Stream to serialize requests
+	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
-	public OpaStreamClient(final InputStream in, final OutputStream out, int recvBuffLen, int sendBuffLen) {
-		mSerializer = new OpaSerializer(out, sendBuffLen);
+	public OpaStreamClient(final InputStream in, final OutputStream out, OpaClientConfig cfg) {
+		mSerializer = new OpaSerializer(out, cfg.sendBuffLen);
+		mSerializeQueue = new LinkedBlockingQueue<Request>(cfg.sendQueueLen);
 
 		// TODO: consider using java.util.concurrent.Executor for send? (recv will always be blocking or doing work)
 
@@ -107,7 +108,7 @@ public class OpaStreamClient implements OpaClient {
 		OpaUtils.startDaemonThread(new Runnable() {
 			public void run() {
 				try {
-					parseResponses(in, recvBuffLen);
+					parseResponses(in, cfg);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -125,7 +126,7 @@ public class OpaStreamClient implements OpaClient {
 	 * @param out Stream to serialize requests
 	 */
 	public OpaStreamClient(final InputStream in, final OutputStream out) {
-		this(in, out, 1024 * 4, 1024 * 4);
+		this(in, out, OpaClientConfig.DEFAULT_CFG);
 	}
 
 	private static void cleanupDeadRequests(BlockingQueue<Request> q) {
@@ -210,9 +211,9 @@ public class OpaStreamClient implements OpaClient {
 		mSerializer.flush();
 	}
 
-	private void parseResponses(InputStream in, int buffLen) throws IOException {
-		OpaClientRecvState s = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
-		byte[] buff = new byte[buffLen];
+	private void parseResponses(InputStream in, OpaClientConfig cfg) throws IOException {
+		OpaClientRecvState s = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		byte[] buff = new byte[cfg.recvBuffLen];
 		while (!mQuit) {
 			int numRead = in.read(buff);
 			if (numRead == -1) {
@@ -223,7 +224,12 @@ public class OpaStreamClient implements OpaClient {
 	}
 
 	private void addRequest(CharSequence command, Iterator<?> args, Object id, CallbackSF<Object,OpaRpcError> cb) {
-		mSerializeQueue.add(new Request(command, args, id, cb));
+		try {
+			mSerializeQueue.put(new Request(command, args, id, cb));
+		} catch (InterruptedException e) {
+			// TODO: create an Opatomic-specific exception class to use here rather than a wrapped RuntimeException?
+			throw new RuntimeException(e);
+		}
 	}
 
 	private void checkState() {

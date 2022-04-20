@@ -139,7 +139,7 @@ public class OpaNio2Client implements OpaClient {
 	private final AtomicLong mCurrId = new AtomicLong();
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
-	private final OpaClientRecvState mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks);
+	private final OpaClientRecvState mRecvState;
 	private final ByteBuffer mRecvBuff;
 	private final OpaNio2CopyOutputStream mOut;
 	private final OpaSerializer mSerializer;
@@ -149,15 +149,15 @@ public class OpaNio2Client implements OpaClient {
 
 	/**
 	 * Create a new client that uses the Java NIO2 API.
-	 * @param ch           The channel to use. Must be connected already.
-	 * @param recvBuffLen  Size of the recv/parse buffer in bytes.
-	 * @param sendBuffLen  Size of the serializer buffer in bytes.
+	 * @param ch   The channel to use. Must be connected already.
+	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
-	public OpaNio2Client(AsynchronousByteChannel ch, int recvBuffLen, int sendBuffLen) {
+	public OpaNio2Client(AsynchronousByteChannel ch, OpaClientConfig cfg) {
 		mChan = ch;
-		mRecvBuff = ByteBuffer.allocate(recvBuffLen);
+		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		mRecvBuff = ByteBuffer.allocate(cfg.recvBuffLen);
 		mOut = new OpaNio2CopyOutputStream(this, ch);
-		mSerializer = new OpaSerializer(mOut, sendBuffLen);
+		mSerializer = new OpaSerializer(mOut, cfg.sendBuffLen);
 		mChan.read(mRecvBuff, this, READCH);
 	}
 
@@ -282,8 +282,6 @@ public class OpaNio2Client implements OpaClient {
 
 	private static final Object LOCK = new Object();
 	private static AsynchronousChannelGroup CHGRP = null;
-	private static final int DEFAULT_RECV_BUFF_LEN = 1024 * 4;
-	private static final int DEFAULT_SEND_BUFF_LEN = 1024 * 4;
 
 	private static void startService() throws IOException {
 		synchronized (LOCK) {
@@ -295,12 +293,12 @@ public class OpaNio2Client implements OpaClient {
 		}
 	}
 
-	public static OpaNio2Client connect(SocketAddress addr, AsynchronousSocketChannel ch, long timeout, TimeUnit unit) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public static OpaNio2Client connect(SocketAddress addr, AsynchronousSocketChannel ch, long timeout, TimeUnit unit, OpaClientConfig cfg) throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		Future<Void> f = ch.connect(addr);
 		f.get(timeout, unit);
 		ch.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 		//ch.setOption(StandardSocketOptions.SO_SNDBUF, 1024);
-		return new OpaNio2Client(ch, DEFAULT_RECV_BUFF_LEN, DEFAULT_SEND_BUFF_LEN);
+		return new OpaNio2Client(ch, cfg);
 	}
 
 	/**
@@ -309,18 +307,19 @@ public class OpaNio2Client implements OpaClient {
 	 * @param addr    Address of Opatomic server
 	 * @param timeout The maximum time to wait
 	 * @param unit    The time unit of the timeout argument
+	 * @param cfg     Client options
 	 * @return the new client
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 * @throws TimeoutException
 	 */
-	public static OpaNio2Client connect(SocketAddress addr, long timeout, TimeUnit unit) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public static OpaNio2Client connect(SocketAddress addr, long timeout, TimeUnit unit, OpaClientConfig cfg) throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		startService();
-		return connect(addr, AsynchronousSocketChannel.open(CHGRP), timeout, unit);
+		return connect(addr, AsynchronousSocketChannel.open(CHGRP), timeout, unit, cfg);
 	}
 
-	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, OpaClientConfig cfg, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		ch.connect(addr, null, new CompletionHandler<Void,A>() {
 			@Override
 			public void completed(Void unused1, Object unused2) {
@@ -328,7 +327,7 @@ public class OpaNio2Client implements OpaClient {
 					ch.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 				} catch (IOException e) {
 				}
-				cb.completed(new OpaNio2Client(ch, DEFAULT_RECV_BUFF_LEN, DEFAULT_SEND_BUFF_LEN), attachment);
+				cb.completed(new OpaNio2Client(ch, cfg), attachment);
 			}
 			@Override
 			public void failed(Throwable exc, Object unused2) {

@@ -12,15 +12,17 @@ import java.util.Queue;
 class OpaClientRecvState {
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
+	private final OpaRawResponseHandler mUnknownIdHandler;
 
 	private final OpaPartialParser.Buff mBuff = new OpaPartialParser.Buff();
 	private final OpaPartialParser mParser = new OpaPartialParser();
 
 	//private long mNumRecv;
 
-	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Object,CallbackSF<Object,OpaRpcError>> asynccbs) {
+	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Object,CallbackSF<Object,OpaRpcError>> asynccbs, OpaRawResponseHandler unknownIdHandler) {
 		mMainCallbacks = maincbs;
 		mAsyncCallbacks = asynccbs;
+		mUnknownIdHandler = unknownIdHandler;
 	}
 
 	private int getErrorCode(Object codeObj) {
@@ -40,8 +42,9 @@ class OpaClientRecvState {
 				cb = mAsyncCallbacks.get(id);
 			}
 			if (cb == null) {
-				// TODO: handle unknown asyncid with a callback
-				System.err.println("Unknown callback id " + OpaUtils.stringify(id));
+				if (mUnknownIdHandler != null) {
+					mUnknownIdHandler.handle(id, result, err);
+				}
 				return;
 			}
 		} else {
