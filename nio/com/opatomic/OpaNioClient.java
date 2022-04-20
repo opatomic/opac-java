@@ -257,8 +257,9 @@ public class OpaNioClient implements OpaClient {
 	}
 
 	/**
-	 * Create a new client and connect to the specified address.
-	 * @param addr address of Opatomic server
+	 * Create a new client and connect to the specified address (blocks until connect is complete or timeout occurs).
+	 * @param addr          Address of Opatomic server
+	 * @param timeoutMillis The maximum time to wait in milliseconds
 	 * @return new client
 	 * @throws IOException
 	 */

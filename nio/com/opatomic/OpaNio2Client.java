@@ -304,7 +304,7 @@ public class OpaNio2Client implements OpaClient {
 	}
 
 	/**
-	 * Create a new client and connect to the specified address (blocks until connect is complete). All clients will use a shared internal
+	 * Create a new client and connect to the specified address (blocks until connect is complete or timeout occurs). All clients will use a shared internal
 	 * AsynchronousChannelGroup that uses a shared internal ExecutorService.
 	 * @param addr    Address of Opatomic server
 	 * @param timeout The maximum time to wait
