@@ -223,7 +223,15 @@ public class OpaNioClient implements OpaClient {
 		}
 		Long id = mCurrId.incrementAndGet();
 		mAsyncCallbacks.put(id, cb);
-		addRequest(cmd, args, id, cb);
+		boolean removeCB = true;
+		try {
+			addRequest(cmd, args, id, null);
+			removeCB = false;
+		} finally {
+			if (removeCB) {
+				mAsyncCallbacks.remove(id);
+			}
+		}
 	}
 
 	@Override
