@@ -114,6 +114,7 @@ public class OpaNioClient implements OpaClient {
 		}
 	};
 
+	private final OpaClientConfig mConfig;
 	private final AtomicLong mCurrId = new AtomicLong();
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
@@ -129,7 +130,8 @@ public class OpaNioClient implements OpaClient {
 	private boolean mAutoFlush = true;
 
 	OpaNioClient(SocketChannel ch, OpaNioSelector sel, OpaClientConfig cfg) {
-		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		mConfig = cfg;
+		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg);
 		mRecvBuff = ByteBuffer.allocate(cfg.recvBuffLen);
 		mOut = new OpaNioBufferedOutputStream(sel, ch, mHandler);
 		mSerializer = new OpaSerializer(mOut, cfg.sendBuffLen);
@@ -145,7 +147,7 @@ public class OpaNioClient implements OpaClient {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
 		}
-		OpaStreamClient.respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
+		OpaClientUtils.respondWithClosedErr(mConfig, mMainCallbacks, mAsyncCallbacks);
 	}
 
 	public boolean setAutoFlush(boolean onOrOff) {

@@ -12,17 +12,17 @@ import java.util.Queue;
 class OpaClientRecvState {
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks;
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks;
-	private final OpaRawResponseHandler mUnknownIdHandler;
+	private final OpaClientConfig mConfig;
 
 	private final OpaPartialParser.Buff mBuff = new OpaPartialParser.Buff();
 	private final OpaPartialParser mParser = new OpaPartialParser();
 
 	//private long mNumRecv;
 
-	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Object,CallbackSF<Object,OpaRpcError>> asynccbs, OpaRawResponseHandler unknownIdHandler) {
+	public OpaClientRecvState(Queue<CallbackSF<Object,OpaRpcError>> maincbs, Map<Object,CallbackSF<Object,OpaRpcError>> asynccbs, OpaClientConfig cfg) {
 		mMainCallbacks = maincbs;
 		mAsyncCallbacks = asynccbs;
-		mUnknownIdHandler = unknownIdHandler;
+		mConfig = cfg;
 	}
 
 	private int getErrorCode(Object codeObj) {
@@ -42,8 +42,8 @@ class OpaClientRecvState {
 				cb = mAsyncCallbacks.get(id);
 			}
 			if (cb == null) {
-				if (mUnknownIdHandler != null) {
-					mUnknownIdHandler.handle(id, result, err);
+				if (mConfig.unknownIdHandler != null) {
+					mConfig.unknownIdHandler.handle(id, result, err);
 				}
 				return;
 			}
@@ -66,20 +66,11 @@ class OpaClientRecvState {
 			}
 		}
 
-		try {
-			// note that the callback is being called from the response parser
-			// thread. This means that all subsequent responses must wait for the callback
-			// to finish before being invoked. Therefore the callback must finish
-			// quickly (ie, wake up a separate thread if it will not return fast)
-			if (err2 != null) {
-				cb.onFailure(err2);
-			} else {
-				cb.onSuccess(result);
-			}
-		} catch (Exception ex) {
-			OpaDef.log("Exception in callback: " + ex.toString());
-			//e.printStackTrace();
-		}
+		// note that the callback is being called from the response parser
+		// thread. This means that all subsequent responses must wait for the callback
+		// to finish before being invoked. Therefore the callback must finish
+		// quickly (ie, wake up a separate thread if it will not return fast)
+		OpaClientUtils.invokeCallback(mConfig, cb, result, err2);
 	}
 
 	private void onResponse(Object o) {

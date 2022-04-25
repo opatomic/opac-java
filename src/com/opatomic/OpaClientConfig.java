@@ -1,13 +1,26 @@
 package com.opatomic;
 
 public class OpaClientConfig {
+	public interface RawResponseHandler {
+		void handle(Object id, Object result, Object err);
+	}
+	public interface ExceptionHandler {
+		void handle(Throwable e, Object context);
+	}
+
 	public static final OpaClientConfig DEFAULT_CFG;
 	static {
 		DEFAULT_CFG = new OpaClientConfig();
-		DEFAULT_CFG.unknownIdHandler = new OpaRawResponseHandler() {
+		DEFAULT_CFG.unknownIdHandler = new RawResponseHandler() {
 			@Override
 			public void handle(Object id, Object result, Object err) {
 				System.err.println("Unknown callback id " + OpaUtils.stringify(id));
+			}
+		};
+		DEFAULT_CFG.uncaughtExceptionHandler = new ExceptionHandler() {
+			@Override
+			public void handle(Throwable e, Object context) {
+				e.printStackTrace();
 			}
 		};
 	}
@@ -31,5 +44,16 @@ public class OpaClientConfig {
 	/**
 	 * Callback to invoke when a response is received without a registered callback.
 	 */
-	public OpaRawResponseHandler unknownIdHandler;
+	public RawResponseHandler unknownIdHandler;
+
+	/**
+	 * Callback to invoke when an uncaught exception occurs.
+	 */
+	public ExceptionHandler uncaughtExceptionHandler;
+
+	/**
+	 * Callback to invoke when an internal error occurs in the client. Examples could include parse
+	 * errors or serialization errors.
+	 */
+	public ExceptionHandler clientErrorHandler;
 }

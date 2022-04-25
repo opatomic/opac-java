@@ -44,10 +44,10 @@ final class Request {
 public class OpaStreamClient implements OpaClient {
 
 	private static final Request LASTREQUEST = new Request("", null, null, null);
-	private static final OpaRpcError CLOSED_ERROR = new OpaRpcError(OpaDef.ERR_CLOSED);
 
 	private final AtomicLong mCurrId = new AtomicLong();
 
+	private final OpaClientConfig mConfig;
 	private final OpaSerializer mSerializer;
 	private final BlockingQueue<Request> mSerializeQueue;
 
@@ -65,6 +65,7 @@ public class OpaStreamClient implements OpaClient {
 	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
 	public OpaStreamClient(final InputStream in, final OutputStream out, OpaClientConfig cfg) {
+		mConfig = cfg;
 		mSerializer = new OpaSerializer(out, cfg.sendBuffLen);
 		mSerializeQueue = new LinkedBlockingQueue<Request>(cfg.sendQueueLen);
 
@@ -81,7 +82,9 @@ public class OpaStreamClient implements OpaClient {
 					// mClosed should have been set by recv thread
 					mSerializeQueue.add(LASTREQUEST);
 				} catch (Exception e) {
-					e.printStackTrace();
+					if (cfg.clientErrorHandler != null) {
+						cfg.clientErrorHandler.handle(e, null);
+					}
 
 					// at this point, the recv thread may be running or may be closed.
 					// close InputStream to indicate that serializer is done and recv thread must stop
@@ -96,11 +99,15 @@ public class OpaStreamClient implements OpaClient {
 					mClosed = true;
 					try {
 						in.close();
-					} catch (Exception e2) {}
+					} catch (Exception e2) {
+						if (cfg.clientErrorHandler != null) {
+							cfg.clientErrorHandler.handle(e, null);
+						}
+					}
 				}
 
-				cleanupDeadRequests(mSerializeQueue);
-				respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
+				cleanupDeadRequests(mConfig, mSerializeQueue);
+				OpaClientUtils.respondWithClosedErr(mConfig, mMainCallbacks, mAsyncCallbacks);
 				//OpaDef.log("closing send thread");
 			}
 		}, "OpaStreamClient-send");
@@ -110,7 +117,9 @@ public class OpaStreamClient implements OpaClient {
 				try {
 					parseResponses(in, cfg);
 				} catch (Exception e) {
-					e.printStackTrace();
+					if (cfg.clientErrorHandler != null) {
+						cfg.clientErrorHandler.handle(e, null);
+					}
 				}
 				mClosed = true;
 				// signal send thread that recv thread is done
@@ -129,41 +138,21 @@ public class OpaStreamClient implements OpaClient {
 		this(in, out, OpaClientConfig.DEFAULT_CFG);
 	}
 
-	private static void cleanupDeadRequests(BlockingQueue<Request> q) {
+	private static void cleanupDeadRequests(OpaClientConfig cfg, BlockingQueue<Request> q) {
 		while (true) {
 			try {
 				Request r = q.take();
 				if (r == LASTREQUEST) {
 					break;
 				}
-				if (r != null && r.cb != null) {
-					r.cb.onFailure(CLOSED_ERROR);
+				if (r != null) {
+					OpaClientUtils.invokeCallback(cfg, r.cb, null, OpaClientUtils.CLOSED_ERROR);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	static void respondWithClosedErr(Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Object,CallbackSF<Object,OpaRpcError>> asyncCBs) {
-		// notify callbacks that conn is closed
-		while (true) {
-			CallbackSF<Object,OpaRpcError> cb = mainCBs.poll();
-			if (cb == null) {
-				break;
-			}
-			cb.onFailure(CLOSED_ERROR);
-		}
-
-		if (asyncCBs.size() > 0) {
-			Iterator<Map.Entry<Object,CallbackSF<Object,OpaRpcError>>> it = asyncCBs.entrySet().iterator();
-			while (it.hasNext()) {
-				CallbackSF<Object,OpaRpcError> cb = it.next().getValue();
-				if (cb != null) {
-					cb.onFailure(CLOSED_ERROR);
+				if (cfg.clientErrorHandler != null) {
+					cfg.clientErrorHandler.handle(e, null);
 				}
 			}
-			asyncCBs.clear();
 		}
 	}
 
@@ -212,7 +201,7 @@ public class OpaStreamClient implements OpaClient {
 	}
 
 	private void parseResponses(InputStream in, OpaClientConfig cfg) throws IOException {
-		OpaClientRecvState s = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		OpaClientRecvState s = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg);
 		byte[] buff = new byte[cfg.recvBuffLen];
 		while (!mQuit) {
 			int numRead = in.read(buff);
@@ -299,16 +288,12 @@ public class OpaStreamClient implements OpaClient {
 			@Override
 			public void onSuccess(Object result) {
 				mQuit = true;
-				if (cb != null) {
-					cb.onSuccess(result);
-				}
+				OpaClientUtils.invokeCallback(mConfig, cb, result, null);
 			}
 			@Override
 			public void onFailure(OpaRpcError error) {
 				mQuitting = false;
-				if (cb != null) {
-					cb.onFailure(error);
-				}
+				OpaClientUtils.invokeCallback(mConfig, cb, null, error);
 			}
 		});
 	}

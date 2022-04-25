@@ -136,6 +136,7 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 }
 
 public class OpaNio2Client implements OpaClient {
+	private final OpaClientConfig mConfig;
 	private final AtomicLong mCurrId = new AtomicLong();
 	private final Queue<CallbackSF<Object,OpaRpcError>> mMainCallbacks = new ConcurrentLinkedQueue<CallbackSF<Object,OpaRpcError>>();
 	private final Map<Object,CallbackSF<Object,OpaRpcError>> mAsyncCallbacks = new ConcurrentHashMap<Object,CallbackSF<Object,OpaRpcError>>();
@@ -154,7 +155,8 @@ public class OpaNio2Client implements OpaClient {
 	 */
 	public OpaNio2Client(AsynchronousByteChannel ch, OpaClientConfig cfg) {
 		mChan = ch;
-		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg.unknownIdHandler);
+		mConfig = cfg;
+		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg);
 		mRecvBuff = ByteBuffer.allocate(cfg.recvBuffLen);
 		mOut = new OpaNio2CopyOutputStream(this, ch);
 		mSerializer = new OpaSerializer(mOut, cfg.sendBuffLen);
@@ -245,7 +247,7 @@ public class OpaNio2Client implements OpaClient {
 			mChan.close();
 		} catch (IOException e) {
 		}
-		OpaStreamClient.respondWithClosedErr(mMainCallbacks, mAsyncCallbacks);
+		OpaClientUtils.respondWithClosedErr(mConfig, mMainCallbacks, mAsyncCallbacks);
 	}
 
 	private static CompletionHandler<Integer,OpaNio2Client> READCH = new CompletionHandler<Integer,OpaNio2Client>() {
