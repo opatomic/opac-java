@@ -312,55 +312,6 @@ public class OpaUtils {
 		return null;
 	}
 
-	// returns 0 if codeObj is invalid
-	private static int getErrorCode(Object codeObj) {
-		if (codeObj instanceof Long) {
-			long code = ((Long) codeObj).longValue();
-			if (code > Integer.MAX_VALUE || code < Integer.MIN_VALUE) {
-				return 0;
-			}
-			return (int) code;
-		} else if (codeObj instanceof Integer) {
-			return ((Integer) codeObj).intValue();
-		}
-		return 0;
-	}
-
-	public static OpaRpcError convertErr(Object err) {
-		if (err != null) {
-			if (err instanceof List) {
-				List<?> lerr = (List<?>) err;
-				int lsize = lerr.size();
-				if (lsize < 2 || lsize > 3) {
-					return new OpaRpcError(OpaDef.ERR_INVRESPONSE, "err array size is wrong", err);
-				}
-				int code = getErrorCode(lerr.get(0));
-				Object msg = lerr.get(1);
-				if (code == 0) {
-					return new OpaRpcError(OpaDef.ERR_INVRESPONSE, "err code is invalid", err);
-				}
-				if (!(msg instanceof String)) {
-					return new OpaRpcError(OpaDef.ERR_INVRESPONSE, "err msg is not string object", err);
-				}
-				return new OpaRpcError(code, (String) msg, lsize >= 3 ? lerr.get(2) : null);
-			} else if (err instanceof Object[]) {
-				Object[] aerr = (Object[]) err;
-				List<Object> lerr = new ArrayList<Object>(aerr.length);
-				for (int i = 0; i < aerr.length; ++i) {
-					lerr.add(aerr[i]);
-				}
-				return convertErr(lerr);
-			} else {
-				int code = getErrorCode(err);
-				if (code == 0) {
-					return new OpaRpcError(OpaDef.ERR_INVRESPONSE, "err code is invalid", err);
-				}
-				return new OpaRpcError(code);
-			}
-		}
-		return null;
-	}
-
 	static Thread startDaemonThread(Runnable r, String name) {
 		Thread t = new Thread(r, name);
 		t.setDaemon(true);
