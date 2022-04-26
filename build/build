@@ -3,7 +3,7 @@
 
 # note: must have jdk installed to build!
 
-TMPDIR="tmp"
+OTMPDIR="tmp"
 OUTDIR="out"
 
 
@@ -22,23 +22,23 @@ cleandir() {
 VERSION="$(./verget)"
 
 cleandir "$OUTDIR"
-cleandir "$TMPDIR"
+cleandir "$OTMPDIR"
 
-javac $JCFLAGS -d "$TMPDIR" ../src/com/opatomic/*.java
+javac $JCFLAGS -d "$OTMPDIR" ../src/com/opatomic/*.java
 # TODO: add license file to jar?
-echo "opac-version: $VERSION" >> "$TMPDIR/build.txt"
-cp ../LICENSE "$TMPDIR"
+echo "opac-version: $VERSION" >> "$OTMPDIR/build.txt"
+cp ../LICENSE "$OTMPDIR"
 #TODO: add more info to build.txt - date/time, machine info?
-jar cvf "$OUTDIR/opac.jar" -C "$TMPDIR" .
-deldir "$TMPDIR"
+jar cvf "$OUTDIR/opac.jar" -C "$OTMPDIR" .
 
+deldir "$OTMPDIR"
 
 # note: docs are generated in "verinc" script
 
 
 ## This will build the YCSB source; must set correct path to lib folder
-#cleandir $TMPDIR
-#javac -d $TMPDIR -cp "$HOME/Downloads/ycsb-redis-binding-0.15.0/lib/*:$OUTDIR/opac.jar" ../test/com/yahoo/ycsb/db/*.java
-#jar cvf $OUTDIR/opatomic-ycsb.jar -C $TMPDIR .
-#deldir $TMPDIR
+#cleandir $OTMPDIR
+#javac -d $OTMPDIR -cp "$HOME/Downloads/ycsb-redis-binding-0.15.0/lib/*:$OUTDIR/opac.jar" ../test/com/yahoo/ycsb/db/*.java
+#jar cvf $OUTDIR/opatomic-ycsb.jar -C $OTMPDIR .
+#deldir $OTMPDIR
 
