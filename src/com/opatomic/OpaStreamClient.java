@@ -64,7 +64,7 @@ public class OpaStreamClient implements OpaClient {
 	 * @param out  Stream to serialize requests
 	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
-	public OpaStreamClient(final InputStream in, final OutputStream out, OpaClientConfig cfg) {
+	public OpaStreamClient(final InputStream in, OutputStream out, OpaClientConfig cfg) {
 		mConfig = cfg;
 		mSerializer = new OpaSerializer(out, cfg.sendBuffLen);
 		mSerializeQueue = new LinkedBlockingQueue<Request>(cfg.sendQueueLen);
@@ -82,8 +82,8 @@ public class OpaStreamClient implements OpaClient {
 					// mClosed should have been set by recv thread
 					mSerializeQueue.add(LASTREQUEST);
 				} catch (Exception e) {
-					if (cfg.clientErrorHandler != null) {
-						cfg.clientErrorHandler.handle(e, null);
+					if (mConfig.clientErrorHandler != null) {
+						mConfig.clientErrorHandler.handle(e, null);
 					}
 
 					// at this point, the recv thread may be running or may be closed.
@@ -100,8 +100,8 @@ public class OpaStreamClient implements OpaClient {
 					try {
 						in.close();
 					} catch (Exception e2) {
-						if (cfg.clientErrorHandler != null) {
-							cfg.clientErrorHandler.handle(e, null);
+						if (mConfig.clientErrorHandler != null) {
+							mConfig.clientErrorHandler.handle(e, null);
 						}
 					}
 				}
@@ -115,10 +115,10 @@ public class OpaStreamClient implements OpaClient {
 		OpaUtils.startDaemonThread(new Runnable() {
 			public void run() {
 				try {
-					parseResponses(in, cfg);
+					parseResponses(in, mConfig);
 				} catch (Exception e) {
-					if (cfg.clientErrorHandler != null) {
-						cfg.clientErrorHandler.handle(e, null);
+					if (mConfig.clientErrorHandler != null) {
+						mConfig.clientErrorHandler.handle(e, null);
 					}
 				}
 				mClosed = true;

@@ -63,7 +63,8 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 			return ByteBuffer.allocate(INIT_BUFF_LEN);
 		} else {
 			// TODO: zero buffer contents?
-			return bb.clear();
+			bb.clear();
+			return bb;
 		}
 	}
 
@@ -72,7 +73,8 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 			int cap = bb.capacity();
 			int newSize = Math.max(cap + cap/2, bb.position() + len);
 			ByteBuffer newbb = ByteBuffer.allocate(newSize);
-			newbb.put(bb.flip());
+			bb.flip();
+			newbb.put(bb);
 			bb = newbb;
 		}
 		bb.put(data, off, len);
@@ -88,7 +90,8 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 				ByteBuffer tmp = mBuff1;
 				mBuff1 = mBuff2;
 				mBuff2 = tmp;
-				mChan.write(mBuff1.flip(), this, WRITECH);
+				mBuff1.flip();
+				mChan.write(mBuff1, this, WRITECH);
 			} else {
 				mWriteOutstanding = false;
 				// write completion handler can be called immediately; detect this to prevent recursion
@@ -116,7 +119,8 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 			mBuff1 = appendBB(mBuff1, buff, off, len);
 			mWriteOutstanding = true;
 			mWriting = true;
-			mChan.write(mBuff1.flip(), this, WRITECH);
+			mBuff1.flip();
+			mChan.write(mBuff1, this, WRITECH);
 			mWriting = false;
 		} else {
 			mBuff2 = appendBB(mBuff2, buff, off, len);
@@ -267,7 +271,8 @@ public class OpaNio2Client implements OpaClient {
 					c.close();
 				} else {
 					c.mRecvState.onRecv(c.mRecvBuff.array(), c.mRecvBuff.arrayOffset(), numRead);
-					c.mChan.read(c.mRecvBuff.clear(), c, READCH);
+					c.mRecvBuff.clear();
+					c.mChan.read(c.mRecvBuff, c, READCH);
 				}
 			} catch (Exception e) {
 				c.close();
