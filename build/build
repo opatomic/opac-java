@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -eu
 
 # note: must have jdk installed to build!
 
