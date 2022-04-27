@@ -101,7 +101,7 @@ public class OpaStreamClient implements OpaClient {
 						in.close();
 					} catch (Exception e2) {
 						if (mConfig.clientErrorHandler != null) {
-							mConfig.clientErrorHandler.handle(e, null);
+							mConfig.clientErrorHandler.handle(e2, null);
 						}
 					}
 				}
