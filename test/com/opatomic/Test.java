@@ -30,7 +30,7 @@ class Benchmark {
 		}
 		@Override
 		public Object next() {
-			return new NoSuchElementException();
+			throw new NoSuchElementException();
 		}
 		@Override
 		public void remove() {
