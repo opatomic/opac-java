@@ -32,6 +32,10 @@ class Benchmark {
 		public Object next() {
 			return new NoSuchElementException();
 		}
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
 	};
 	private static final Iterable<Object> EMPTYITERABLE = new Iterable<Object>() {
 		@Override
@@ -301,11 +305,11 @@ public class Test {
 		vals.add(bd.intValue());
 		vals.add(bd.longValue());
 		float fl = bd.floatValue();
-		if (Float.isFinite(fl)) {
+		if (!Float.isInfinite(fl) && !Float.isNaN(fl)) {
 			vals.add(fl);
 		}
 		double db = bd.doubleValue();
-		if (Double.isFinite(db)) {
+		if (!Double.isInfinite(db) && !Double.isNaN(db)) {
 			vals.add(db);
 		}
 		vals.add(bd.toBigInteger());
@@ -470,7 +474,7 @@ public class Test {
 	 * @param args  command arguments
 	 * @param its   number of times to run command
 	 */
-	private static void testSyncCalls(OpaClient c, String op, Iterable<Object> args, int its) {
+	private static void testSyncCalls(final OpaClient c, final String op, final Iterable<Object> args, final int its) {
 		long time = System.currentTimeMillis();
 
 		CallbackSF<Object,OpaRpcError> cb = new CallbackSF<Object,OpaRpcError>() {

@@ -22,7 +22,7 @@ public class Example {
 		return Arrays.asList(objs).iterator();
 	}
 
-	private static void runExample(OpaClient c) throws InterruptedException {
+	private static void runExample(final OpaClient c) throws InterruptedException {
 
 		CallbackSF<Object,OpaRpcError> echoResult = new CallbackSF<Object,OpaRpcError>() {
 			@Override

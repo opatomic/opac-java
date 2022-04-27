@@ -334,7 +334,7 @@ public class OpaNio2Client implements OpaClient {
 		return connect(addr, AsynchronousSocketChannel.open(CHGRP), timeout, unit, cfg);
 	}
 
-	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, OpaClientConfig cfg, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, final OpaClientConfig cfg, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		ch.connect(addr, null, new CompletionHandler<Void,A>() {
 			@Override
 			public void completed(Void unused1, Object unused2) {

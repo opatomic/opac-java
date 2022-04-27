@@ -174,7 +174,7 @@ public class OpatomicAsyncClient extends DB {
 			}
 		} else {
 			if (mUseDMGET) {
-				List<String> args = new ArrayList<String>(1 + fields.size());
+				final List<String> args = new ArrayList<String>(1 + fields.size());
 				args.add(key);
 				args.addAll(fields);
 				if (wait) {
