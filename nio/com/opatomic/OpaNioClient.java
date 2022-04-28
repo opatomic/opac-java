@@ -72,7 +72,7 @@ final class OpaNioBufferedOutputStream extends OutputStream {
 	}
 
 	@Override
-	public void write(int arg0) throws IOException {
+	public void write(int arg0) {
 		// writing 1 byte at a time is inefficient!
 		throw new UnsupportedOperationException();
 	}

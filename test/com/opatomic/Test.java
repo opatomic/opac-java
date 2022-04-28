@@ -517,7 +517,7 @@ public class Test {
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
 			c.call("ECHO", asIt(new OpaSerializer.OpaSerializable() {
 				@Override
-				public void writeOpaSO(OpaSerializer out) throws IOException {
+				public void writeOpaSO(OpaSerializer out) {
 					throw new RuntimeException("test case!");
 				}
 			}), wcb);
