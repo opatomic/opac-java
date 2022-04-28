@@ -57,9 +57,11 @@ if [ "$GHRELID" = "null" ]; then
 	GHRELID=$(curl -s -S -u "$GHUSER:$GHTOKEN" -X POST "https://api.github.com/repos/$GHUSER/$GHREPO/releases" -d "{\"tag_name\":\"$GHTAG\"}" | jq ".id")
 fi
 
-JCFLAGS="--release 6" ./build
+JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
 
 
 # upload files
-uploadAsset "$GHUSER" "$GHTOKEN" "$GHREPO" "$GHRELID" "out/opac.jar"
+uploadAsset "$GHUSER" "$GHTOKEN" "$GHREPO" "$GHRELID" "out/opac-$VERSION.jar"
+uploadAsset "$GHUSER" "$GHTOKEN" "$GHREPO" "$GHRELID" "out/opac-$VERSION-nosrc.jar"
+uploadAsset "$GHUSER" "$GHTOKEN" "$GHREPO" "$GHRELID" "out/opac-$VERSION-docs.zip"
 

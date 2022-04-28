@@ -8,38 +8,48 @@ OTMPDIR="tmp"
 OUTDIR="out"
 
 
-deldir() {
-	if [ -d "$1" ]; then
-		rm -r "$1"
-	fi
-}
-
-cleandir() {
-	deldir "$1"
-	mkdir "$1"
-}
-
-
 VERSION="$(./verget)"
 
-cleandir "$OUTDIR"
-cleandir "$OTMPDIR"
+mkdir -p "$OUTDIR"
+mkdir -p "$OTMPDIR"
+rm -rf "${OUTDIR:?}/"*
+rm -rf "${OTMPDIR:?}/"*
 
+echo "building java sources..."
 javac $JCFLAGS -d "$OTMPDIR" ../src/com/opatomic/*.java
-# TODO: add license file to jar?
+#TODO: add more info to build.txt - date/time, machine info?
 echo "opac-version: $VERSION" >> "$OTMPDIR/build.txt"
 cp ../LICENSE "$OTMPDIR"
-#TODO: add more info to build.txt - date/time, machine info?
-jar cvf "$OUTDIR/opac.jar" -C "$OTMPDIR" .
 
-deldir "$OTMPDIR"
+echo "creating jar..."
+[ "$AUTHTS" = "" ] || find "$OTMPDIR" -exec touch "--date=@$AUTHTS" {} +
+jar cvf "$OUTDIR/opac-$VERSION-nosrc.jar" -C "$OTMPDIR" .
+
+echo "creating jar..."
+cp ../src/com/opatomic/*.java "$OTMPDIR/com/opatomic/"
+[ "$AUTHTS" = "" ] || find "$OTMPDIR" -exec touch "--date=@$AUTHTS" {} +
+jar cvf "$OUTDIR/opac-$VERSION.jar" -C "$OTMPDIR" .
+
+echo "building java docs..."
+rm -rf "${OTMPDIR:?}/"*
+javadoc -quiet -notimestamp --no-module-directories -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$VERSION" -d "$OTMPDIR" -sourcepath ../src com.opatomic
+cd "$OTMPDIR" || exit 1
+[ "$AUTHTS" = "" ] || find . -exec touch "--date=@$AUTHTS" {} +
+find . -type f -printf '%P\n' | LC_ALL=C sort | zip -rqX "../out/opac-$VERSION-docs.zip" -@
+cd - > /dev/null
+
+echo "compiling nio sources..."
+# build nio sources to make sure they compile ok; but do not include in the final jar yet
+javac --release 6 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNioSelector.java ../nio/com/opatomic/OpaNioClient.java
+javac --release 7 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNio2Client.java
+
+rm -rf "${OTMPDIR:?}/"*
 
 # note: docs are generated in "verinc" script
 
 
 ## This will build the YCSB source; must set correct path to lib folder
-#cleandir $OTMPDIR
 #javac -d $OTMPDIR -cp "$HOME/Downloads/ycsb-redis-binding-0.15.0/lib/*:$OUTDIR/opac.jar" ../test/com/yahoo/ycsb/db/*.java
 #jar cvf $OUTDIR/opatomic-ycsb.jar -C $OTMPDIR .
-#deldir $OTMPDIR
+#rm -rf "${OTMPDIR:?}/"*
 
