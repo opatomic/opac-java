@@ -342,9 +342,7 @@ public final class OpaSerializer extends OutputStream {
 
 	@Override
 	public void close() throws IOException {
-		try {
-			flush();
-		} catch (IOException e) {}
+		flush();
 		mOut.close();
 	}
 }
