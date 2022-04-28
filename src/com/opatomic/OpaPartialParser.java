@@ -14,8 +14,8 @@ import java.util.List;
 /**
  * Opatomic parser that parses objects from byte[] buffers in chunks.
  * <br><br>
- * Default object mapping:
- * <table summary="Opatomic-Java type mapping table">
+ * <table>
+ * <caption>Default object mapping</caption>
  * <tr><th>Opatomic type</th><th>Java Object</th></tr>
  * <tr><td>undefined</td><td>OpaDef.UndefinedObj</td></tr>
  * <tr><td>null</td><td>null</td></tr>
