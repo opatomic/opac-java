@@ -259,11 +259,7 @@ public class OpaStreamClient implements OpaClient {
 
 	@Override
 	public CallbackSF<Object,OpaRpcError> registerCB(Object id, CallbackSF<Object, OpaRpcError> cb) {
-		if (cb == null) {
-			return mAsyncCallbacks.remove(id);
-		} else {
-			return mAsyncCallbacks.put(id, cb);
-		}
+		return cb == null ? mAsyncCallbacks.remove(id) : mAsyncCallbacks.put(id, cb);
 	}
 
 	@Override

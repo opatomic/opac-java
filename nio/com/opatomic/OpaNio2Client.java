@@ -61,11 +61,10 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 	private static ByteBuffer clearBuff(ByteBuffer bb) {
 		if (bb.capacity() > MAX_BUFF_LEN) {
 			return ByteBuffer.allocate(INIT_BUFF_LEN);
-		} else {
-			// TODO: zero buffer contents?
-			bb.clear();
-			return bb;
 		}
+		// TODO: zero buffer contents?
+		bb.clear();
+		return bb;
 	}
 
 	private static ByteBuffer appendBB(ByteBuffer bb, byte[] data, int off, int len) {
@@ -239,11 +238,7 @@ public class OpaNio2Client implements OpaClient {
 
 	@Override
 	public CallbackSF<Object, OpaRpcError> registerCB(Object id, CallbackSF<Object, OpaRpcError> cb) {
-		if (cb == null) {
-			return mAsyncCallbacks.remove(id);
-		} else {
-			return mAsyncCallbacks.put(id, cb);
-		}
+		return cb == null ? mAsyncCallbacks.remove(id) : mAsyncCallbacks.put(id, cb);
 	}
 
 	@Override

@@ -173,10 +173,9 @@ final class OpaSyncClient {
 			if (mPipelineLen < 0) {
 				mSerializer.flush();
 				return parseNext(throwOnErr);
-			} else {
-				++mPipelineLen;
-				return null;
 			}
+			++mPipelineLen;
+			return null;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
