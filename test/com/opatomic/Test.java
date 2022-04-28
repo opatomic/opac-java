@@ -512,7 +512,7 @@ public class Test {
 	private static void testCloseFromSerializerException(String host, int port) {
 		try {
 			WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
-			Socket s = new Socket("127.0.0.1", 4567);
+			Socket s = new Socket(host, port);
 			s.setTcpNoDelay(true);
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
 			c.call("ECHO", asIt(new OpaSerializer.OpaSerializable() {
