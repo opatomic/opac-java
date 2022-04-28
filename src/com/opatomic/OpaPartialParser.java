@@ -13,10 +13,10 @@ import java.util.List;
 
 /**
  * Opatomic parser that parses objects from byte[] buffers in chunks.
- * <br/><br/>
+ * <br><br>
  * Default object mapping:
- * <table>
- * <tr><th>Opatomic type</td><th>Java Object</th></tr>
+ * <table summary="Opatomic-Java type mapping table">
+ * <tr><th>Opatomic type</th><th>Java Object</th></tr>
  * <tr><td>undefined</td><td>OpaDef.UndefinedObj</td></tr>
  * <tr><td>null</td><td>null</td></tr>
  * <tr><td>false</td><td>Boolean.FALSE</td></tr>
