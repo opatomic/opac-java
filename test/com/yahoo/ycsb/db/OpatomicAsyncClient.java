@@ -84,10 +84,10 @@ public class OpatomicAsyncClient extends DB {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
-		if (wcb.error != null) {
-			throw new RuntimeException(wcb.error.toString());
+		if (wcb.getError() != null) {
+			throw new RuntimeException(wcb.getError().toString());
 		}
-		return wcb.result;
+		return wcb.getResult();
 	}
 
 	private Object callAndWait(String cmd, Iterator<?> args) {

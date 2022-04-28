@@ -211,10 +211,10 @@ public class Test {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
-		if (wcb.error != null) {
-			throw new RuntimeException(wcb.error.toString());
+		if (wcb.getError() != null) {
+			throw new RuntimeException(wcb.getError().toString());
 		}
-		return wcb.result;
+		return wcb.getResult();
 	}
 
 	private static byte[] serializeToBuff(Object o) {
@@ -522,7 +522,7 @@ public class Test {
 				}
 			}), wcb);
 			wcb.waitIfNotDone();
-			if (wcb.error == null) {
+			if (wcb.getError() == null) {
 				throw new RuntimeException("expected error in cb");
 			}
 			s.close();

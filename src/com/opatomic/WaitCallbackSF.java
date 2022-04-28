@@ -31,14 +31,41 @@ import java.util.concurrent.TimeoutException;
  * @param <E> Object type for error
  */
 public class WaitCallbackSF<R,E> implements CallbackSF<R,E> {
-	public R result;
-	public E error;
+	private R mResult;
+	private E mError;
 	private boolean mIsDone;
+
+	/**
+	 * Get the result of the callback. Must call getError() first to determine whether an error occurred.
+	 * @return result
+	 * @throws IllegalStateException if the error/result is not available
+	 * @throws IllegalStateException if the callback failed and an error exists
+	 */
+	public R getResult() {
+		if (!mIsDone) {
+			throw new IllegalStateException("result is not available yet");
+		} else if (mError != null) {
+			throw new IllegalStateException("callback failed; getResult() cannot be called");
+		}
+		return mResult;
+	}
+
+	/**
+	 * Get the error of the callback. Returns null if an error did not occur.
+	 * @return result
+	 * @throws IllegalStateException if the error/result is not available
+	 */
+	public E getError() {
+		if (!mIsDone) {
+			throw new IllegalStateException("error is not available yet");
+		}
+		return mError;
+	}
 
 	@Override
 	public synchronized void onSuccess(R result) {
 		//if (Debug.ENABLE) Debug.debugAssert(!mIsDone, "Callback invoked multiple times");
-		this.result = result;
+		mResult = result;
 		mIsDone = true;
 		notifyAll();
 	}
@@ -46,7 +73,7 @@ public class WaitCallbackSF<R,E> implements CallbackSF<R,E> {
 	@Override
 	public synchronized void onFailure(E error) {
 		//if (Debug.ENABLE) Debug.debugAssert(!mIsDone, "Callback invoked multiple times");
-		this.error = error;
+		mError = error;
 		mIsDone = true;
 		notifyAll();
 	}
@@ -94,8 +121,8 @@ public class WaitCallbackSF<R,E> implements CallbackSF<R,E> {
 	 */
 	public WaitCallbackSF<R,E> reset() {
 		mIsDone = false;
-		result = null;
-		error = null;
+		mResult = null;
+		mError = null;
 		return this;
 	}
 }
