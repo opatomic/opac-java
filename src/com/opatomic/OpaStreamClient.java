@@ -158,27 +158,11 @@ public class OpaStreamClient implements OpaClient {
 		}
 	}
 
-	static void writeRequest(OpaSerializer s, CharSequence cmd, Iterator<?> args, Object id) throws IOException {
-		s.write(OpaDef.C_ARRAYSTART);
-		s.writeObject(id);
-		if (cmd == null) {
-			s.writeObject(cmd);
-		} else {
-			s.writeString(cmd);
-		}
-		if (args != null) {
-			while (args.hasNext()) {
-				s.writeObject(args.next());
-			}
-		}
-		s.write(OpaDef.C_ARRAYEND);
-	}
-
 	private void sendRequest(Request r) throws IOException {
 		if (r.asyncId == null) {
 			mMainCallbacks.add(r.cb);
 		}
-		writeRequest(mSerializer, r.command, r.args, r.asyncId);
+		OpaClientUtils.writeRequest(mSerializer, r.command, r.args, r.asyncId);
 	}
 
 	private void serializeRequests(BlockingQueue<Request> q) throws IOException, InterruptedException {

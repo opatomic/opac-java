@@ -1,5 +1,6 @@
 package com.opatomic;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
@@ -34,6 +35,22 @@ class OpaClientUtils {
 				cfg.uncaughtExceptionHandler.handle(ex, new ResponseCallbackFailure(cb, null, null, err));
 			}
 		}
+	}
+
+	static void writeRequest(OpaSerializer s, CharSequence cmd, Iterator<?> args, Object id) throws IOException {
+		s.write(OpaDef.C_ARRAYSTART);
+		s.writeObject(id);
+		if (cmd == null) {
+			s.writeObject(cmd);
+		} else {
+			s.writeString(cmd);
+		}
+		if (args != null) {
+			while (args.hasNext()) {
+				s.writeObject(args.next());
+			}
+		}
+		s.write(OpaDef.C_ARRAYEND);
 	}
 
 	static void respondWithClosedErr(OpaClientConfig cfg, Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Object,CallbackSF<Object,OpaRpcError>> asyncCBs) {

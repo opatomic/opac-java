@@ -186,7 +186,7 @@ public class OpaNioClient implements OpaClient {
 					}
 					break;
 				}
-				OpaStreamClient.writeRequest(mSerializer, r.command, r.args, r.asyncId);
+				OpaClientUtils.writeRequest(mSerializer, r.command, r.args, r.asyncId);
 			}
 		} catch (Exception e) {
 			close();
@@ -201,7 +201,7 @@ public class OpaNioClient implements OpaClient {
 			if (mUseQueue) {
 				mSerializeQueue.add(new Request(command, args, id, cb));
 			} else {
-				OpaStreamClient.writeRequest(mSerializer, command, args, id);
+				OpaClientUtils.writeRequest(mSerializer, command, args, id);
 				if (mAutoFlush) {
 					flushInternal();
 				}
