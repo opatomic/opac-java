@@ -62,6 +62,7 @@ final class OpaNioSelector implements Runnable {
 		}
 	}
 
+	@Override
 	public void run() {
 		mLoopThread = Thread.currentThread();
 		while (true) {

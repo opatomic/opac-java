@@ -72,6 +72,7 @@ public class OpaStreamClient implements OpaClient {
 		// TODO: consider using java.util.concurrent.Executor for send? (recv will always be blocking or doing work)
 
 		OpaUtils.startDaemonThread(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					serializeRequests(mSerializeQueue);
@@ -113,6 +114,7 @@ public class OpaStreamClient implements OpaClient {
 		}, "OpaStreamClient-send");
 
 		OpaUtils.startDaemonThread(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					parseResponses(in, mConfig);

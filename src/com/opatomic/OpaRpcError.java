@@ -26,6 +26,7 @@ public class OpaRpcError {
 		this(code, null);
 	}
 
+	@Override
 	public String toString() {
 		if (data != null) {
 			return OpaUtils.stringify(Arrays.asList(code, msg, data));

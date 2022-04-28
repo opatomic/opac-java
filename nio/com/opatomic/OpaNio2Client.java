@@ -288,6 +288,7 @@ public class OpaNio2Client implements OpaClient {
 
 
 	private final static class DaemonThreadFactory implements ThreadFactory {
+		@Override
 		public Thread newThread(Runnable target) {
 			Thread t = new Thread(target);
 			t.setDaemon(true);
