@@ -34,6 +34,7 @@ final class Utf8Utils {
 		for (int i = offset; i < end; ++i) {
 			int ch = s.charAt(i);
 			if (ch < 0x80) {
+				// ascii char is 1 byte (already included in numBytes)
 			} else if (ch < 0x800) {
 				++numBytes;
 			} else if (ch < 0xD800 || ch > 0xDFFF) {
