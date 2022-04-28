@@ -39,7 +39,7 @@ public class OpaClientConfig {
 	 * Max length of the send queue. When the length is reached, callers will block until a request
 	 * has been removed from the send queue to be serialized. This is a form of back-pressure.
 	 */
-	public int sendQueueLen = Integer.MAX_VALUE;
+	public int sendQueueLen = 1024;
 
 	/**
 	 * Callback to invoke when a response is received without a registered callback.
