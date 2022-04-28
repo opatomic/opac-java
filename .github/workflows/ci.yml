@@ -9,4 +9,6 @@ jobs:
     - uses: actions/checkout@v1
     - name: build
       working-directory: build
-      run: ./build
+      run: |
+        ./build
+        JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
