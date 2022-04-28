@@ -276,13 +276,22 @@ public class OpaNioClient implements OpaClient {
 	 * @throws IOException
 	 */
 	public static OpaNioClient connect(SocketAddress addr, int timeoutMillis, OpaClientConfig cfg) throws IOException {
-		startService();
-		SocketChannel sc = SocketChannel.open();
-		sc.configureBlocking(true);
-		sc.socket().connect(addr, timeoutMillis);
-		sc.configureBlocking(false);
-		sc.socket().setTcpNoDelay(true);
-		//sc.socket().setSendBufferSize(1024);
-		return new OpaNioClient(sc, SELECTOR, cfg);
+		SocketChannel sc = null;
+		OpaNioClient c = null;
+		try {
+			startService();
+			sc = SocketChannel.open();
+			sc.configureBlocking(true);
+			sc.socket().connect(addr, timeoutMillis);
+			sc.configureBlocking(false);
+			sc.socket().setTcpNoDelay(true);
+			//sc.socket().setSendBufferSize(1024);
+			c = new OpaNioClient(sc, SELECTOR, cfg);
+		} finally {
+			if (c == null && sc != null) {
+				sc.close();
+			}
+		}
+		return c;
 	}
 }
