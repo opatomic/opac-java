@@ -32,7 +32,7 @@ jar cvf "$OUTDIR/opac-$VERSION.jar" -C "$OTMPDIR" .
 
 echo "building java docs..."
 rm -rf "${OTMPDIR:?}/"*
-javadoc -quiet -notimestamp --no-module-directories -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$VERSION" -d "$OTMPDIR" -sourcepath ../src com.opatomic
+javadoc -Xdoclint:none -quiet -notimestamp --no-module-directories -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$VERSION" -d "$OTMPDIR" -sourcepath ../src com.opatomic
 cd "$OTMPDIR" || exit 1
 [ "$AUTHTS" = "" ] || find . -exec touch "--date=@$AUTHTS" {} +
 find . -type f -printf '%P\n' | LC_ALL=C sort | zip -rqX "../out/opac-$VERSION-docs.zip" -@
