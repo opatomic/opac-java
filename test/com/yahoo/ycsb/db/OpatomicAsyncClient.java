@@ -122,7 +122,7 @@ public class OpatomicAsyncClient extends DB {
 		return mError != null || result.isEmpty() ? Status.ERROR : Status.OK;
 	}
 
-	private void resultAddAll(Iterator<?> it, Map<String, ByteIterator> result) {
+	private static void resultAddAll(Iterator<?> it, Map<String, ByteIterator> result) {
 		while (it.hasNext()) {
 			Object k = it.next();
 			Object v = it.next();
@@ -148,7 +148,7 @@ public class OpatomicAsyncClient extends DB {
 		}
 	}
 
-	private void addAllFromDMGET(List<String> args, Object r, final Map<String, ByteIterator> result) {
+	private static void addAllFromDMGET(List<String> args, Object r, Map<String, ByteIterator> result) {
 		List<?> vals = (List<?>) r;
 		for (int i = 0; i < vals.size(); ++i) {
 			result.put(args.get(i + 1), new ByteArrayByteIterator((byte[]) vals.get(i)));

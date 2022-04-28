@@ -25,7 +25,7 @@ class OpaClientRecvState {
 		mConfig = cfg;
 	}
 
-	private int getErrorCode(Object codeObj) {
+	private static int getErrorCode(Object codeObj) {
 		long code = ((Long) codeObj).longValue();
 		if (code > Integer.MAX_VALUE || code < Integer.MIN_VALUE || code == 0) {
 			throw new RuntimeException("invalid error code: " + Long.toString(code));

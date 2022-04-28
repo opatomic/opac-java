@@ -259,7 +259,7 @@ public class OpatomicClient extends DB {
 		}
 	}
 
-	private void setRangeFields(Iterator<?> it, Map<String, ByteIterator> record) {
+	private static void setRangeFields(Iterator<?> it, Map<String, ByteIterator> record) {
 		while (it.hasNext()) {
 			Object k = it.next();
 			record.put((String)k, new ByteArrayByteIterator((byte[]) it.next()));
