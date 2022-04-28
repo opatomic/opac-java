@@ -113,7 +113,7 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 	}
 
 	@Override
-	public void write(byte[] buff, int off, int len) throws IOException {
+	public void write(byte[] buff, int off, int len) {
 		assert Thread.holdsLock(this);
 		if (!mWriteOutstanding) {
 			mBuff1 = appendBB(mBuff1, buff, off, len);
@@ -128,12 +128,12 @@ final class OpaNio2CopyOutputStream extends OutputStream {
 	}
 
 	@Override
-	public void write(byte[] buff) throws IOException {
+	public void write(byte[] buff) {
 		write(buff, 0, buff.length);
 	}
 
 	@Override
-	public void write(int arg0) throws IOException {
+	public void write(int arg0) {
 		// writing 1 byte at a time is inefficient!
 		throw new UnsupportedOperationException();
 	}
@@ -334,7 +334,7 @@ public class OpaNio2Client implements OpaClient {
 		return connect(addr, AsynchronousSocketChannel.open(CHGRP), timeout, unit, cfg);
 	}
 
-	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, final OpaClientConfig cfg, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+	public static <A> void connect(SocketAddress addr, final AsynchronousSocketChannel ch, final OpaClientConfig cfg, final A attachment, final CompletionHandler<OpaNio2Client,? super A> cb) {
 		ch.connect(addr, null, new CompletionHandler<Void,A>() {
 			@Override
 			public void completed(Void unused1, Object unused2) {
