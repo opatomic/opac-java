@@ -37,7 +37,10 @@ fi
 mkdir "$DOCSDIR"
 # note: javadoc option "-source 8" is used as a bug workaround when also using -link
 #       see: https://issues.apache.org/jira/browse/MJAVADOC-615
-javadoc -quiet -notimestamp --no-module-directories -link https://docs.oracle.com/javase/7/docs/api/ -source 8 -header "opac-$NEXTVER" -d "$DOCSDIR" -sourcepath ../src com.opatomic
+# note: $JD_FIX is used to fix a problem with search in generated java docs.
+#       see: https://stackoverflow.com/questions/52326318/maven-javadoc-search-redirects-to-undefined-url
+JD_FIX="<script>if(typeof useModuleDirectories !== 'undefined'){useModuleDirectories=false;}</script>"
+javadoc -Xdoclint:none -notimestamp -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$NEXTVER" -d "$DOCSDIR" --allow-script-in-comments -bottom "$JD_FIX" -sourcepath ../src com.opatomic
 git add -A ../docs/
 
 git add version.txt

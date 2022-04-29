@@ -32,7 +32,12 @@ jar cvf "$OUTDIR/opac-$VERSION.jar" -C "$OTMPDIR" .
 
 echo "building java docs..."
 rm -rf "${OTMPDIR:?}/"*
-javadoc -Xdoclint:none -quiet -notimestamp --no-module-directories -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$VERSION" -d "$OTMPDIR" -sourcepath ../src com.opatomic
+# Previously, --no-module-directories was used to fix problems with javadoc search but that option
+# is no longer supported in more recent javadoc versions. The following variable now fixes javadoc
+# search. It also requires the --allow-script-in-comments option.
+# see: https://stackoverflow.com/questions/52326318/maven-javadoc-search-redirects-to-undefined-url
+JD_FIX="<script>if(typeof useModuleDirectories !== 'undefined'){useModuleDirectories=false;}</script>"
+javadoc -Xdoclint:none -notimestamp -link "https://docs.oracle.com/javase/7/docs/api/" -source 8 -header "opac-$VERSION" -d "$OTMPDIR" --allow-script-in-comments -bottom "$JD_FIX" -sourcepath ../src com.opatomic
 cd "$OTMPDIR" || exit 1
 [ "$AUTHTS" = "" ] || find . -exec touch "--date=@$AUTHTS" {} +
 find . -type f -printf '%P\n' | LC_ALL=C sort | zip -rqX "../out/opac-$VERSION-docs.zip" -@
