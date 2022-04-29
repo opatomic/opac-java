@@ -6,6 +6,7 @@ set -e
 
 OTMPDIR="tmp"
 OUTDIR="out"
+BUILD_NIO_CLIENTS="${BUILD_NIO_CLIENTS:-1}"
 
 
 VERSION="$(./verget)"
@@ -43,10 +44,12 @@ cd "$OTMPDIR" || exit 1
 find . -type f -printf '%P\n' | LC_ALL=C sort | zip -rqX "../out/opac-$VERSION-docs.zip" -@
 cd - > /dev/null
 
-echo "compiling nio sources..."
-# build nio sources to make sure they compile ok; but do not include in the final jar yet
-javac --release 6 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNioSelector.java ../nio/com/opatomic/OpaNioClient.java
-javac --release 7 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNio2Client.java
+if [ "$BUILD_NIO_CLIENTS" != "0" ]; then
+	echo "compiling nio sources..."
+	# build nio sources to make sure they compile ok; but do not include in the final jar yet
+	javac --release 6 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNioSelector.java ../nio/com/opatomic/OpaNioClient.java
+	javac --release 7 -d "$OTMPDIR" -cp "$OUTDIR/opac-$VERSION.jar" ../nio/com/opatomic/OpaNio2Client.java
+fi
 
 rm -rf "${OTMPDIR:?}/"*
 

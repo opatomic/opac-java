@@ -24,4 +24,4 @@ jobs:
     - name: build
       working-directory: build
       run: |
-        JCFLAGS="-source 1.5 -target 1.5" AUTHTS="$(git log -1 --format=%at)" ./build
+        BUILD_NIO_CLIENTS=0 JCFLAGS="-source 1.5 -target 1.5" AUTHTS="$(git log -1 --format=%at)" ./build
