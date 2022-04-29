@@ -17,25 +17,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-final class Request {
-	public final CharSequence command;
-	public final Iterator<?> args;
-	public final Object asyncId;
-	public final CallbackSF<Object,OpaRpcError> cb;
-
-	Request(CharSequence command, Iterator<?> args, Object asyncId, CallbackSF<Object,OpaRpcError> cb) {
-		this.command = command;
-		this.args = args;
-		this.asyncId = asyncId;
-		this.cb = cb;
-	}
-
-	// TODO: implement toString()?
-
-	// TODO: return an instance of this object from call() functions with a cancel() function: if request hasn't
-	//  been sent then set flag and when it is time to serialize, call failure callback? see java.util.concurrent.Future
-}
-
 /**
  * Opatomic client that uses 2 threads: 1 for parser and 1 for serializer. Methods do not block (unless the
  * OpaClientConfig specifies a max sendQueueLen - then callers may block until the send queue has reduced in size).
