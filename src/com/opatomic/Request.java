@@ -3,10 +3,10 @@ package com.opatomic;
 import java.util.Iterator;
 
 final class Request {
-	public final CharSequence command;
-	public final Iterator<?> args;
-	public final Object asyncId;
-	public final CallbackSF<Object,OpaRpcError> cb;
+	final CharSequence command;
+	final Iterator<?> args;
+	final Object asyncId;
+	final CallbackSF<Object,OpaRpcError> cb;
 
 	Request(CharSequence command, Iterator<?> args, Object asyncId, CallbackSF<Object,OpaRpcError> cb) {
 		this.command = command;
