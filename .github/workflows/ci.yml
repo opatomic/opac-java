@@ -24,5 +24,4 @@ jobs:
     - name: build
       working-directory: build
       run: |
-        JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
-        JCFLAGS="-source 1.5 -target 1.5" ./build
+        JCFLAGS="-source 1.5 -target 1.5" AUTHTS="$(git log -1 --format=%at)" ./build
