@@ -26,14 +26,14 @@
     catch(err) {
     }
 //-->
-var data = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10};
+var data = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
 var tableTab = "tableTab";
 var activeTableTab = "activeTableTab";
 var pathtoroot = "../../";
-var useModuleDirectories = false;
+var useModuleDirectories = true;
 loadScripts(document, 'script');</script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
@@ -57,7 +57,7 @@ loadScripts(document, 'script');</script>
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_top">
@@ -88,13 +88,13 @@ loadScripts(document, 'script');</script>
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li>Nested&nbsp;|&nbsp;</li>
-<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li><a href="#constructor.summary">Constr</a>&nbsp;|&nbsp;</li>
 <li><a href="#method.summary">Method</a></li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li><a href="#constructor.detail">Constr</a>&nbsp;|&nbsp;</li>
 <li><a href="#method.detail">Method</a></li>
 </ul>
@@ -167,34 +167,6 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <div class="summary">
 <ul class="blockList">
 <li class="blockList">
-<!-- =========== FIELD SUMMARY =========== -->
-<section role="region">
-<ul class="blockList">
-<li class="blockList"><a id="field.summary">
-<!--   -->
-</a>
-<h3>Field Summary</h3>
-<table class="memberSummary">
-<caption><span>Fields</span><span class="tabEnd">&nbsp;</span></caption>
-<tr>
-<th class="colFirst" scope="col">Modifier and Type</th>
-<th class="colSecond" scope="col">Field</th>
-<th class="colLast" scope="col">Description</th>
-</tr>
-<tr class="altColor">
-<td class="colFirst"><code><a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#error">error</a></span></code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr class="rowColor">
-<td class="colFirst"><code><a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#result">result</a></span></code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-</table>
-</li>
-</ul>
-</section>
 <!-- ======== CONSTRUCTOR SUMMARY ======== -->
 <section role="region">
 <ul class="blockList">
@@ -231,34 +203,48 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <th class="colLast" scope="col">Description</th>
 </tr>
 <tr id="i0" class="altColor">
+<td class="colFirst"><code><a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getError()">getError</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Get the error of the callback.</div>
+</td>
+</tr>
+<tr id="i1" class="rowColor">
+<td class="colFirst"><code><a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getResult()">getResult</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Get the result of the callback.</div>
+</td>
+</tr>
+<tr id="i2" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#onFailure(E)">onFailure</a></span>&#8203;(<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a>&nbsp;error)</code></th>
 <td class="colLast">
 <div class="block">Invoked when error response is received</div>
 </td>
 </tr>
-<tr id="i1" class="rowColor">
+<tr id="i3" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#onSuccess(R)">onSuccess</a></span>&#8203;(<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a>&nbsp;result)</code></th>
 <td class="colLast">
 <div class="block">Invoked when success response is received</div>
 </td>
 </tr>
-<tr id="i2" class="altColor">
+<tr id="i4" class="altColor">
 <td class="colFirst"><code><a href="WaitCallbackSF.html" title="class in com.opatomic">WaitCallbackSF</a>&lt;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a>,&#8203;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a>&gt;</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#reset()">reset</a></span>()</code></th>
 <td class="colLast">
 <div class="block">Clear the callback's state so it can be used again</div>
 </td>
 </tr>
-<tr id="i3" class="rowColor">
+<tr id="i5" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#waitIfNotDone()">waitIfNotDone</a></span>()</code></th>
 <td class="colLast">
 <div class="block">Wait forever until a response is received.</div>
 </td>
 </tr>
-<tr id="i4" class="altColor">
+<tr id="i6" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#waitIfNotDone(long)">waitIfNotDone</a></span>&#8203;(long&nbsp;millis)</code></th>
 <td class="colLast">
@@ -282,34 +268,6 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <div class="details">
 <ul class="blockList">
 <li class="blockList">
-<!-- ============ FIELD DETAIL =========== -->
-<section role="region">
-<ul class="blockList">
-<li class="blockList"><a id="field.detail">
-<!--   -->
-</a>
-<h3>Field Detail</h3>
-<a id="result">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>result</h4>
-<pre>public&nbsp;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a> result</pre>
-</li>
-</ul>
-<a id="error">
-<!--   -->
-</a>
-<ul class="blockListLast">
-<li class="blockList">
-<h4>error</h4>
-<pre>public&nbsp;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a> error</pre>
-</li>
-</ul>
-</li>
-</ul>
-</section>
 <!-- ========= CONSTRUCTOR DETAIL ======== -->
 <section role="region">
 <ul class="blockList">
@@ -336,6 +294,39 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <!--   -->
 </a>
 <h3>Method Detail</h3>
+<a id="getResult()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getResult</h4>
+<pre class="methodSignature">public&nbsp;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">R</a>&nbsp;getResult()</pre>
+<div class="block">Get the result of the callback. Must call getError() first to determine whether an error occurred.</div>
+<dl>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>result</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/7/docs/api/java/lang/IllegalStateException.html?is-external=true" title="class or interface in java.lang" class="externalLink">IllegalStateException</a></code> - if the error/result is not available</dd>
+<dd><code><a href="https://docs.oracle.com/javase/7/docs/api/java/lang/IllegalStateException.html?is-external=true" title="class or interface in java.lang" class="externalLink">IllegalStateException</a></code> - if the callback failed and an error exists</dd>
+</dl>
+</li>
+</ul>
+<a id="getError()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getError</h4>
+<pre class="methodSignature">public&nbsp;<a href="WaitCallbackSF.html" title="type parameter in WaitCallbackSF">E</a>&nbsp;getError()</pre>
+<div class="block">Get the error of the callback. Returns null if an error did not occur.</div>
+<dl>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>result</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/7/docs/api/java/lang/IllegalStateException.html?is-external=true" title="class or interface in java.lang" class="externalLink">IllegalStateException</a></code> - if the error/result is not available</dd>
+</dl>
+</li>
+</ul>
 <a id="onSuccess(java.lang.Object)">
 <!--   -->
 </a><a id="onSuccess(R)">
@@ -449,7 +440,7 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_bottom">
@@ -474,13 +465,13 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li>Nested&nbsp;|&nbsp;</li>
-<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li><a href="#constructor.summary">Constr</a>&nbsp;|&nbsp;</li>
 <li><a href="#method.summary">Method</a></li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li><a href="#constructor.detail">Constr</a>&nbsp;|&nbsp;</li>
 <li><a href="#method.detail">Method</a></li>
 </ul>
@@ -490,6 +481,7 @@ implements <a href="CallbackSF.html" title="interface in com.opatomic">CallbackS
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
 </nav>
+<p class="legalCopy"><small><script>if(typeof useModuleDirectories !== 'undefined'){useModuleDirectories=false;}</script></small></p>
 </footer>
 </body>
 </html>

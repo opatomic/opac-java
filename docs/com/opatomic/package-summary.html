@@ -27,7 +27,7 @@
     }
 //-->
 var pathtoroot = "../../";
-var useModuleDirectories = false;
+var useModuleDirectories = true;
 loadScripts(document, 'script');</script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
@@ -51,7 +51,7 @@ loadScripts(document, 'script');</script>
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_top">
@@ -117,6 +117,14 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </td>
 </tr>
 <tr class="altColor">
+<th class="colFirst" scope="row"><a href="OpaClientConfig.ExceptionHandler.html" title="interface in com.opatomic">OpaClientConfig.ExceptionHandler</a></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr class="rowColor">
+<th class="colFirst" scope="row"><a href="OpaClientConfig.RawResponseHandler.html" title="interface in com.opatomic">OpaClientConfig.RawResponseHandler</a></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr class="altColor">
 <th class="colFirst" scope="row"><a href="OpaSerializer.OpaSerializable.html" title="interface in com.opatomic">OpaSerializer.OpaSerializable</a></th>
 <td class="colLast">
 <div class="block">An interface that indicates an Object knows how to serialize itself</div>
@@ -134,40 +142,44 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </tr>
 <tbody>
 <tr class="altColor">
-<th class="colFirst" scope="row"><a href="OpaDef.html" title="class in com.opatomic">OpaDef</a></th>
+<th class="colFirst" scope="row"><a href="OpaClientConfig.html" title="class in com.opatomic">OpaClientConfig</a></th>
 <td class="colLast">&nbsp;</td>
 </tr>
 <tr class="rowColor">
+<th class="colFirst" scope="row"><a href="OpaDef.html" title="class in com.opatomic">OpaDef</a></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr class="altColor">
 <th class="colFirst" scope="row"><a href="OpaPartialParser.html" title="class in com.opatomic">OpaPartialParser</a></th>
 <td class="colLast">
 <div class="block">Opatomic parser that parses objects from byte[] buffers in chunks.</div>
 </td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <th class="colFirst" scope="row"><a href="OpaPartialParser.Buff.html" title="class in com.opatomic">OpaPartialParser.Buff</a></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <th class="colFirst" scope="row"><a href="OpaRpcError.html" title="class in com.opatomic">OpaRpcError</a></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <th class="colFirst" scope="row"><a href="OpaSerializer.html" title="class in com.opatomic">OpaSerializer</a></th>
 <td class="colLast">
 <div class="block">Buffered serializer that converts Objects to bytes to send via OutputStream.</div>
 </td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <th class="colFirst" scope="row"><a href="OpaStreamClient.html" title="class in com.opatomic">OpaStreamClient</a></th>
 <td class="colLast">
 <div class="block">Opatomic client that uses 2 threads: 1 for parser and 1 for serializer.</div>
 </td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <th class="colFirst" scope="row"><a href="OpaUtils.html" title="class in com.opatomic">OpaUtils</a></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <th class="colFirst" scope="row"><a href="WaitCallbackSF.html" title="class in com.opatomic">WaitCallbackSF</a>&lt;R,&#8203;E&gt;</th>
 <td class="colLast">
 <div class="block">A callback that helps make a request synchronous by waiting for response.</div>
@@ -212,7 +224,7 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_bottom">
@@ -238,6 +250,7 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
 </nav>
+<p class="legalCopy"><small><script>if(typeof useModuleDirectories !== 'undefined'){useModuleDirectories=false;}</script></small></p>
 </footer>
 </body>
 </html>

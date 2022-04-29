@@ -33,7 +33,7 @@ var rowColor = "rowColor";
 var tableTab = "tableTab";
 var activeTableTab = "activeTableTab";
 var pathtoroot = "../../";
-var useModuleDirectories = false;
+var useModuleDirectories = true;
 loadScripts(document, 'script');</script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
@@ -57,7 +57,7 @@ loadScripts(document, 'script');</script>
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_top">
@@ -133,10 +133,10 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <pre>public class <span class="typeNameLabel">OpaPartialParser</span>
 extends <a href="https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang" class="externalLink">Object</a></pre>
 <div class="block">Opatomic parser that parses objects from byte[] buffers in chunks.
- <br/><br/>
- Default object mapping:
+ <br><br>
  <table>
- <tr><th>Opatomic type</td><th>Java Object</th></tr>
+ <caption>Default object mapping</caption>
+ <tr><th>Opatomic type</th><th>Java Object</th></tr>
  <tr><td>undefined</td><td>OpaDef.UndefinedObj</td></tr>
  <tr><td>null</td><td>null</td></tr>
  <tr><td>false</td><td>Boolean.FALSE</td></tr>
@@ -353,7 +353,7 @@ extends <a href="https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html
 <li><a href="../../index-all.html">Index</a></li>
 <li><a href="../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage">opac-0.1.19</div>
+<div class="aboutLanguage">opac-0.1.20</div>
 </div>
 <div class="subNav">
 <ul class="navList" id="allclasses_navbar_bottom">
@@ -394,6 +394,7 @@ extends <a href="https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
 </nav>
+<p class="legalCopy"><small><script>if(typeof useModuleDirectories !== 'undefined'){useModuleDirectories=false;}</script></small></p>
 </footer>
 </body>
 </html>
