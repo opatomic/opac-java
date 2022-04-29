@@ -12,3 +12,16 @@ jobs:
       run: |
         ./build
         JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
+
+  build-with-jdk8:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      working-directory: build
+      env:
+        JAVA_HOME: $(JAVA_HOME_8_X64)
+        PATH: $(JAVA_HOME_8_X64)/bin:$(PATH)
+      run: |
+        JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
+        JCFLAGS="-source 1.5 -target 1.5" ./build
