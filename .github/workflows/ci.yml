@@ -21,14 +21,8 @@ jobs:
       run: |
         JAVA_HOME="${JAVA_HOME_8_X64}"
         echo "${JAVA_HOME_8_X64}/bin:$(cat $GITHUB_PATH)" > "$GITHUB_PATH"
-        echo "$JAVA_HOME"
-        cat $GITHUB_PATH
-        javac -version
-        javadoc --version
     - name: build
       working-directory: build
       run: |
-        javac -version
-        javadoc --version
         JCFLAGS="--release 6" AUTHTS="$(git log -1 --format=%at)" ./build
         JCFLAGS="-source 1.5 -target 1.5" ./build
