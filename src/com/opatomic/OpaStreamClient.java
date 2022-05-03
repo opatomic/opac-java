@@ -46,6 +46,11 @@ public class OpaStreamClient implements OpaClient {
 	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
 	public OpaStreamClient(final InputStream in, OutputStream out, OpaClientConfig cfg) {
+		if (cfg.sendQueueLen <= 0) {
+			throw new IllegalArgumentException("config sendQueueLen must be greater than 0");
+		} else if (cfg.recvBuffLen <= 0) {
+			throw new IllegalArgumentException("config recvBuffLen must be greater than 0");
+		}
 		mConfig = cfg;
 		mSerializer = new OpaSerializer(out, cfg.sendBuffLen);
 		mSerializeQueue = new LinkedBlockingQueue<Request>(cfg.sendQueueLen);
