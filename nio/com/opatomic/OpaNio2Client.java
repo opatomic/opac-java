@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -148,8 +149,10 @@ public class OpaNio2Client implements OpaClient {
 	private final OpaNio2CopyOutputStream mOut;
 	private final OpaSerializer mSerializer;
 	private final Queue<Request> mSerializeQueue = new LinkedList<Request>();
+	private final Semaphore mSendLock;
 	private final AsynchronousByteChannel mChan;
 	private boolean mAutoFlush = true;
+	private boolean mClosed = false;
 
 	/**
 	 * Create a new client that uses the Java NIO2 API.
@@ -157,11 +160,17 @@ public class OpaNio2Client implements OpaClient {
 	 * @param cfg  Client options. See OpaClientConfig for details.
 	 */
 	public OpaNio2Client(AsynchronousByteChannel ch, OpaClientConfig cfg) {
+		if (cfg.sendQueueLen <= 0) {
+			throw new IllegalArgumentException("config sendQueueLen must be greater than 0");
+		} else if (cfg.recvBuffLen <= 0) {
+			throw new IllegalArgumentException("config recvBuffLen must be greater than 0");
+		}
 		mChan = ch;
 		mConfig = cfg;
 		mRecvState = new OpaClientRecvState(mMainCallbacks, mAsyncCallbacks, cfg);
 		mRecvBuff = ByteBuffer.allocate(cfg.recvBuffLen);
 		mOut = new OpaNio2CopyOutputStream(this, ch);
+		mSendLock = new Semaphore(cfg.sendQueueLen);
 		mSerializer = new OpaSerializer(mOut, cfg.sendBuffLen);
 		mChan.read(mRecvBuff, this, READCH);
 	}
@@ -173,8 +182,8 @@ public class OpaNio2Client implements OpaClient {
 	}
 
 	public void flush() {
-		try {
-			synchronized (mOut) {
+		synchronized (mOut) {
+			try {
 				while (!mOut.isWriteOutstanding()) {
 					Request r = mSerializeQueue.poll();
 					if (r == null) {
@@ -182,17 +191,32 @@ public class OpaNio2Client implements OpaClient {
 						mSerializer.flush();
 						break;
 					}
+					mSendLock.release();
 					OpaClientUtils.writeRequest(mSerializer, r.command, r.args, r.asyncId);
 				}
+			} catch (Exception e) {
+				OpaClientUtils.handleException(mConfig.clientErrorHandler, e, null);
+				close();
 			}
-		} catch (Exception e) {
-			close();
 		}
 	}
 
 	private void sendRequest(CharSequence cmd, Iterator<?> args, Object id, CallbackSF<Object,OpaRpcError> cb) {
 		try {
-			synchronized (mOut) {
+			mSendLock.acquire();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			// TODO: create an Opatomic-specific exception class to use here rather than a wrapped RuntimeException?
+			throw new RuntimeException(e);
+		}
+		boolean addedToQueue = false;
+		synchronized (mOut) {
+			if (mClosed) {
+				mSendLock.release();
+				// TODO: invoke callback rather than throw?
+				throw new IllegalStateException("closed");
+			}
+			try {
 				if (id == null) {
 					// note: adding to mMainCallbacks must be inside synchronized lock block to make sure the request is serialized at same time
 					//       it was added to mMainCallbacks. Otherwise, another request could be serialized in between the following things
@@ -201,15 +225,21 @@ public class OpaNio2Client implements OpaClient {
 				}
 				if (mOut.isWriteOutstanding()) {
 					mSerializeQueue.add(new Request(cmd, args, id, cb));
+					addedToQueue = true;
 				} else {
 					OpaClientUtils.writeRequest(mSerializer, cmd, args, id);
 					if (mAutoFlush && !mOut.isWriteOutstanding()) {
 						mSerializer.flush();
 					}
 				}
+			} catch (Exception e) {
+				OpaClientUtils.handleException(mConfig.clientErrorHandler, e, null);
+				close();
+			} finally {
+				if (!addedToQueue) {
+					mSendLock.release();
+				}
 			}
-		} catch (Exception e) {
-			close();
 		}
 	}
 
@@ -249,12 +279,42 @@ public class OpaNio2Client implements OpaClient {
 		sendRequest(cmd, args, id, null);
 	}
 
-	public void close() {
+	private static void cleanupDeadRequests(OpaClientConfig cfg, Queue<Request> q) {
+		while (true) {
+			Request r = q.poll();
+			if (r == null) {
+				break;
+			}
+			// TODO: use a different error to indicate that the client was closed but the request was never sent?
+			OpaClientUtils.invokeCallback(cfg, r.cb, null, OpaClientUtils.CLOSED_ERROR);
+		}
+	}
+
+	private void closeChan() {
+		if (mClosed) {
+			return;
+		}
 		try {
 			mChan.close();
-		} catch (IOException e) {
+			mClosed = true;
+		} catch (Exception e) {
+			OpaClientUtils.handleException(mConfig.clientErrorHandler, e, null);
 		}
-		OpaClientUtils.respondWithClosedErr(mConfig, mMainCallbacks, mAsyncCallbacks);
+	}
+
+	private void closeInternal(boolean isRecv) {
+		synchronized (mOut) {
+			closeChan();
+			mSendLock.release(mSerializeQueue.size());
+			cleanupDeadRequests(mConfig, mSerializeQueue);
+			if (isRecv) {
+				OpaClientUtils.respondWithClosedErr(mConfig, mMainCallbacks, mAsyncCallbacks);
+			}
+		}
+	}
+
+	public void close() {
+		closeInternal(false);
 	}
 
 	private static CompletionHandler<Integer,OpaNio2Client> READCH = new CompletionHandler<Integer,OpaNio2Client>() {
@@ -263,19 +323,21 @@ public class OpaNio2Client implements OpaClient {
 			try {
 				int numRead = result.intValue();
 				if (numRead < 0) {
-					c.close();
+					c.closeInternal(true);
 				} else {
 					c.mRecvState.onRecv(c.mRecvBuff.array(), c.mRecvBuff.arrayOffset(), numRead);
 					c.mRecvBuff.clear();
 					c.mChan.read(c.mRecvBuff, c, READCH);
 				}
 			} catch (Exception e) {
-				c.close();
+				OpaClientUtils.handleException(c.mConfig.clientErrorHandler, e, null);
+				c.closeInternal(true);
 			}
 		}
 		@Override
 		public void failed(Throwable exc, OpaNio2Client c) {
-			c.close();
+			OpaClientUtils.handleException(c.mConfig.clientErrorHandler, exc, null);
+			c.closeInternal(true);
 		}
 	};
 
@@ -336,9 +398,10 @@ public class OpaNio2Client implements OpaClient {
 			public void completed(Void unused1, Object unused2) {
 				try {
 					ch.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
-				} catch (IOException e) {
+					cb.completed(new OpaNio2Client(ch, cfg), attachment);
+				} catch (Exception e) {
+					cb.failed(e, attachment);
 				}
-				cb.completed(new OpaNio2Client(ch, cfg), attachment);
 			}
 			@Override
 			public void failed(Throwable exc, Object unused2) {
