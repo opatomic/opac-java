@@ -31,9 +31,7 @@ class OpaClientUtils {
 				}
 			}
 		} catch (Exception ex) {
-			if (cfg.uncaughtExceptionHandler != null) {
-				cfg.uncaughtExceptionHandler.handle(ex, new ResponseCallbackFailure(cb, null, null, err));
-			}
+			handleException(cfg.uncaughtExceptionHandler, ex, new ResponseCallbackFailure(cb, null, null, err));
 		}
 	}
 
@@ -51,6 +49,20 @@ class OpaClientUtils {
 			}
 		}
 		s.write(OpaDef.C_ARRAYEND);
+	}
+
+	static void handleException(OpaClientConfig.ExceptionHandler h, Throwable ex, Object context) {
+		try {
+			if (h != null) {
+				h.handle(ex, context);
+			}
+		} catch (Exception e) {
+			try {
+				e.printStackTrace();
+			} catch (@SuppressWarnings("unused") Exception e2) {
+				// ignore exception at this point
+			}
+		}
 	}
 
 	static void respondWithClosedErr(OpaClientConfig cfg, Queue<CallbackSF<Object,OpaRpcError>> mainCBs, Map<Object,CallbackSF<Object,OpaRpcError>> asyncCBs) {

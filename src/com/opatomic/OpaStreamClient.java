@@ -64,9 +64,7 @@ public class OpaStreamClient implements OpaClient {
 					// mClosed should have been set by recv thread
 					mSerializeQueue.add(LASTREQUEST);
 				} catch (Exception e) {
-					if (mConfig.clientErrorHandler != null) {
-						mConfig.clientErrorHandler.handle(e, null);
-					}
+					OpaClientUtils.handleException(mConfig.clientErrorHandler, e, null);
 
 					// at this point, the recv thread may be running or may be closed.
 					// close InputStream to indicate that serializer is done and recv thread must stop
@@ -82,9 +80,7 @@ public class OpaStreamClient implements OpaClient {
 					try {
 						in.close();
 					} catch (Exception e2) {
-						if (mConfig.clientErrorHandler != null) {
-							mConfig.clientErrorHandler.handle(e2, null);
-						}
+						OpaClientUtils.handleException(mConfig.clientErrorHandler, e2, null);
 					}
 				}
 
@@ -100,9 +96,7 @@ public class OpaStreamClient implements OpaClient {
 				try {
 					parseResponses(in, mConfig);
 				} catch (Exception e) {
-					if (mConfig.clientErrorHandler != null) {
-						mConfig.clientErrorHandler.handle(e, null);
-					}
+					OpaClientUtils.handleException(mConfig.clientErrorHandler, e, null);
 				}
 				mClosed = true;
 				// signal send thread that recv thread is done
@@ -132,9 +126,7 @@ public class OpaStreamClient implements OpaClient {
 					OpaClientUtils.invokeCallback(cfg, r.cb, null, OpaClientUtils.CLOSED_ERROR);
 				}
 			} catch (Exception e) {
-				if (cfg.clientErrorHandler != null) {
-					cfg.clientErrorHandler.handle(e, null);
-				}
+				OpaClientUtils.handleException(cfg.clientErrorHandler, e, null);
 			}
 		}
 	}
