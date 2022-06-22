@@ -80,7 +80,7 @@ public class Example {
 
 	public static void main(String[] args) {
 		try {
-			Socket s = new Socket("127.0.0.1", 4567);
+			Socket s = new Socket("localhost", 4567);
 			s.setTcpNoDelay(true);
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
 			runExample(c);
