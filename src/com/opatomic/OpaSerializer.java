@@ -18,8 +18,7 @@ public final class OpaSerializer extends OutputStream {
 	//private static final Charset    UTF8CS    = Charset.forName("UTF-8");
 	private static final BigInteger BIMAXVARINT = BigInteger.valueOf(Long.MAX_VALUE);
 	private static final BigInteger BIMINVARINT = BigInteger.valueOf(0L - Long.MAX_VALUE);
-	private static final BigDecimal BDMAXVARINT = BigDecimal.valueOf(Long.MAX_VALUE);
-	private static final BigDecimal BDMINVARINT = BigDecimal.valueOf(0L - Long.MAX_VALUE);
+	private static final BigInteger BILONGMINNEG = BigInteger.valueOf(Long.MIN_VALUE).negate();
 
 	/**
 	 * An interface that indicates an Object knows how to serialize itself
@@ -93,15 +92,12 @@ public final class OpaSerializer extends OutputStream {
 	public void writeLong(long val) throws IOException {
 		if (val == 0) {
 			write(OpaDef.C_ZERO);
+		} else if (val > 0) {
+			writeTypeAndVarint(OpaDef.C_POSVARINT, val);
 		} else if (val == Long.MIN_VALUE) {
-			// TODO: use a hard coded byte array so there is no memory allocation here?
-			writeBigInt(BigInteger.valueOf(val));
+			writeTypeAndBigBytes(OpaDef.C_NEGBIGINT, BILONGMINNEG);
 		} else {
-			if (val < 0) {
-				writeTypeAndVarint(OpaDef.C_NEGVARINT, 0 - val);
-			} else {
-				writeTypeAndVarint(OpaDef.C_POSVARINT, val);
-			}
+			writeTypeAndVarint(OpaDef.C_NEGVARINT, 0 - val);
 		}
 	}
 
@@ -113,7 +109,7 @@ public final class OpaSerializer extends OutputStream {
 			// positive value
 			if (v.compareTo(BIMAXVARINT) <= 0) {
 				// varint
-				writeLong(v.longValue());
+				writeTypeAndVarint(OpaDef.C_POSVARINT, v.longValue());
 			} else {
 				// bigint
 				writeTypeAndBigBytes(OpaDef.C_POSBIGINT, v);
@@ -122,7 +118,7 @@ public final class OpaSerializer extends OutputStream {
 			// negative value
 			if (v.compareTo(BIMINVARINT) >= 0) {
 				// varint
-				writeLong(v.longValue());
+				writeTypeAndVarint(OpaDef.C_NEGVARINT, 0 - v.longValue());
 			} else {
 				// bigint
 				writeTypeAndBigBytes(OpaDef.C_NEGBIGINT, v.abs());
@@ -131,39 +127,16 @@ public final class OpaSerializer extends OutputStream {
 	}
 
 	public void writeBigDec(BigDecimal v) throws IOException {
+		BigInteger m = v.unscaledValue();
 		int s = v.signum();
-		if (s == 0) {
-			write(OpaDef.C_ZERO);
-			return;
-		}
 		int scale = v.scale();
-		if (scale == 0) {
-			// using some extra code here to avoid allocating unnecessary objects. avoid abs() and toBigIntegerExact() if not necessary
-			if (s > 0) {
-				if (v.compareTo(BDMAXVARINT) <= 0) {
-					// pos varint
-					writeLong(v.longValue());
-				} else {
-					// pos bigint
-					writeTypeAndBigBytes(OpaDef.C_POSBIGINT, v.toBigIntegerExact());
-				}
-			} else {
-				if (v.compareTo(BDMINVARINT) >= 0) {
-					// neg varint
-					writeLong(v.longValue());
-				} else {
-					// neg bigint
-					writeTypeAndBigBytes(OpaDef.C_NEGBIGINT, v.toBigIntegerExact().abs());
-				}
-			}
+		if (s == 0 || scale == 0) {
+			writeBigInt(m);
 		} else {
-			BigInteger m = v.unscaledValue();
-
 			boolean negExp = scale < 0 ? false : true;
 			if (scale < 0) {
 				scale = 0 - scale;
 			}
-
 			if (s < 0) {
 				if (m.compareTo(BIMINVARINT) >= 0) {
 					// neg vardec
