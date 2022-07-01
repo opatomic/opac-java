@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 # note: must have jdk installed to build!
 
 OTMPDIR="tmp"
