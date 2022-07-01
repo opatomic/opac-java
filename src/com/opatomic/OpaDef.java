@@ -12,8 +12,8 @@ public class OpaDef {
 
 	static final boolean BIGINT_BE = true;
 
-	public static final int ERR_CLOSED      = -16394;
-	public static final int ERR_INVRESPONSE = -16395;
+	public static final int ERR_CLOSED      = -1;
+	public static final int ERR_INVRESPONSE = -2;
 
 	public static final byte C_UNDEFINED    = 'U';
 	public static final byte C_NULL         = 'N';
