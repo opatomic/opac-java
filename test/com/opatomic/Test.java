@@ -594,7 +594,7 @@ public class Test {
 	public static void main(String[] args) {
 		try {
 
-			String host = "127.0.0.1";
+			String host = "localhost";
 			int port = 4567;
 
 			testSerialize();
@@ -610,8 +610,8 @@ public class Test {
 
 			OpaStreamClient c = new OpaStreamClient(s.getInputStream(), s.getOutputStream());
 
-			//OpaClient<Object,Object> c = OpaNioClient.connect(new InetSocketAddress("127.0.0.1", 4567));
-			//OpaClient<Object,Object> c = OpaNIOClientST.connect(new InetSocketAddress("127.0.0.1", 4567));
+			//OpaClient c = OpaNio2Client.connect(new InetSocketAddress(host, port), 3, TimeUnit.SECONDS, cfg);
+			//OpaClient c = OpaNioClient.connect(new InetSocketAddress(host, port), 3000, cfg);
 
 
 			WaitCallbackSF<Object,OpaRpcError> wcb = new WaitCallbackSF<Object,OpaRpcError>();
@@ -697,7 +697,7 @@ public class Test {
 			int ops = 100000;
 			int pipeline = 50;
 			Benchmark b = new Benchmark();
-			b.connect("127.0.0.1", 4567, 50);
+			b.connect(host, port, 50);
 			//b.runCommand("ECHO", asList(123), 10000);
 			//b.runCommand("ECHO", asList(124), 10000);
 			b.runCommand("PING", null, ops, pipeline);
