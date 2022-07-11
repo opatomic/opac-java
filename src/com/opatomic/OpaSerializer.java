@@ -130,7 +130,7 @@ public final class OpaSerializer extends OutputStream {
 		BigInteger m = v.unscaledValue();
 		int s = v.signum();
 		int scale = v.scale();
-		if (s == 0 || scale == 0) {
+		if (scale == 0) {
 			writeBigInt(m);
 		} else {
 			boolean negExp = scale < 0 ? false : true;
